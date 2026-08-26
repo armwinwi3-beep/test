@@ -545,20 +545,43 @@ const formIconColor = computed(() => {
 })
 
 // Home: Grouped Records
+// ฟังก์ชันจัดกลุ่มรายการตามวัน (แก้ทั้งปัญหาวันที่แตก และปัญหา ID ยาว)
 const groupedRecords = computed(() => {
-  const valid = records.value.filter(r => r.status !== 'ยังไม่จ่าย')
-  const grouped = {}
-  valid.forEach(r => {
-    if (!grouped[r.date]) grouped[r.date] = { date: r.date, day: r.date.split('/')[0], expense: 0, income: 0, items: [] }
-    if (isExpense(r.type)) grouped[r.date].expense += r.amount
-    if (isIncome(r.type)) grouped[r.date].income += r.amount
-    r.id = r.date + r.time + r.amount + r.category
-    grouped[r.date].items.push(r)
+  const groups = {}
+  
+  records.value.forEach(item => {
+    if (!item.date) return
+    
+    // แปลงวันที่ให้อยู่ในมาตรฐานเดียวกัน (ตัดเลข 0 ที่อาจต่างกันออก เพื่อไม่ให้การ์ดแยกกัน)
+    const parts = item.date.split('/')
+    const day = parseInt(parts[0], 10)
+    const month = parseInt(parts[1], 10)
+    const year = parts[2]
+    const standardDateKey = `${day}/${month}/${year}` // เช่น "26/8/2026" จะรวมเป็นการ์ดเดียวกันเสมอ
+
+    if (!groups[standardDateKey]) {
+      groups[standardDateKey] = {
+        date: standardDateKey,
+        dayNumber: day,
+        items: [],
+        dayExpense: 0,
+        dayIncome: 0
+      }
+    }
+
+    // สำคัญ: ต้องส่ง item.id ที่เป็นตัวเลขจากฐานข้อมูลต่อเข้าไปตรงๆ
+    groups[standardDateKey].items.push(item)
+
+    const amt = parseFloat(item.amount) || 0
+    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') {
+      groups[standardDateKey].dayExpense += amt
+    } else if (item.type === 'รายรับ') {
+      groups[standardDateKey].dayIncome += amt
+    }
   })
-  return Object.values(grouped).sort((a, b) => {
-    const [d1, m1, y1] = a.date.split('/'); const [d2, m2, y2] = b.date.split('/')
-    return new Date(y2, m2-1, d2) - new Date(y1, m1-1, d1)
-  }).map(g => { g.items.reverse(); return g })
+
+  // เรียงลำดับจากวันที่ล่าสุดลงไป
+  return Object.values(groups).sort((a, b) => b.dayNumber - a.dayNumber)
 })
 
 // Debtors

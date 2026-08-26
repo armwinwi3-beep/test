@@ -872,23 +872,24 @@ onMounted(async () => {
     // 1. สั่ง init LIFF ด้วย ID ของจริง
     await liff.init({ liffId: '2010880429-sx53ElMd' })
     
-    if (liff.isLoggedIn()) {
-      // 2. ถ้าล็อกอินแล้ว ดึง LINE User ID จริงมาใส่ตัวแปรทันที
-      const profile = await liff.getProfile()
-      userId.value = profile.userId
-      console.log('✅ LINE User ID จริง:', userId.value)
-    } else {
-      // ถ้ายังไม่ล็อกอิน ให้เด้งไปหน้าล็อกอิน LINE ทันที
+    // 2. เช็คว่าถ้ายังไม่ได้ล็อกอิน ให้บังคับล็อกอิน LINE ทันที
+    if (!liff.isLoggedIn()) {
       liff.login()
       return
     }
+
+    // 3. ถ้าล็อกอินแล้ว ดึง LINE User ID จริงมาใส่ตัวแปรทันที
+    const profile = await liff.getProfile()
+    userId.value = profile.userId
+    console.log('✅ LINE User ID จริง:', userId.value)
+
   } catch (error) {
-    console.log('⚠️ เปิดผ่านคอมพิวเตอร์ (ไม่ใช่แอป LINE) ถึงจะยอมใช้ admin:', error)
-    // ตรงนี้จะทำงานเฉพาะตอนเปิดบน Chrome ในคอมเท่านั้น
-    userId.value = 'admin' 
+    console.log('⚠️ เปิดผ่านคอมพิวเตอร์เท่านั้นถึงจะยอมใช้ admin:', error)
+    // บล็อกนี้จะทำงานเฉพาะตอนเปิดเทสบน Google Chrome คอมพิวเตอร์เท่านั้น
+    userId.value = 'admin'
   }
 
-  // 3. สั่งดึงข้อมูลกระเป๋าเงินของ User คนนั้นๆ
+  // 4. สั่งดึงข้อมูลกระเป๋าเงินของ User คนนั้นๆ
   fetchMonthData()
 })
 </script>

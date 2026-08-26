@@ -488,7 +488,7 @@ const currentTab = ref('home')
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
 const isLoading = ref(true)
-
+const userId = ref('admin')
 const records = ref([])
 const totalBalance = ref(0)
 const totalExpense = ref(0)
@@ -811,8 +811,8 @@ const deleteRecord = async (item) => {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
-      // เปลี่ยนตรง body ให้ส่ง id และ user_id ไปแทนของเดิมครับ
-      body: JSON.stringify({ id: item.id, user_id: 'admin' }) 
+      // เปลี่ยนจาก 'admin' เป็น userId.value ตัวจริง
+      body: JSON.stringify({ id: item.id, user_id: userId.value }) 
     })
     const data = await res.json()
     if (data.status === 'success') { showToast("✅ ลบสำเร็จ"); fetchMonthData() }
@@ -835,7 +835,14 @@ const payUnpaidBill = (b) => {
 
 const saveRecord = async () => {
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
-  let payload = { type: formType.value, amount: formAmount.value, note: formNote.value || '-' }
+  
+  // 💡 แนบ user_id ไปกับข้อมูลที่บันทึกทุกครั้ง
+  let payload = { 
+    type: formType.value, 
+    amount: formAmount.value, 
+    note: formNote.value || '-',
+    user_id: userId.value 
+  }
 
   if (formType.value === 'transfer') {
     if(!formSourceAcc.value || !formDestAcc.value) return alert("⚠️ กรุณาเลือกบัญชีต้นทางและปลายทางให้ครบ!")
@@ -884,7 +891,7 @@ onMounted(async () => {
     alert('✅ ดึงไอดีสำเร็จ: ' + userId.value)
 
   } catch (error) {
-  // พิมพ์ดูข้อความ Error จริงๆ แบบละเอียด (ไม่ใช่ค่าว่าง {})
+  // แก้ไขข้อความ alert ให้ปลอดภัย ไม่เรียกตัวแปรผิด
   alert('❌ Error Detail: ' + (error.message || JSON.stringify(error)))
   userId.value = 'admin'
 }

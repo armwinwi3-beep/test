@@ -869,27 +869,25 @@ const saveRecord = async () => {
 
 onMounted(async () => {
   try {
-    // 1. สั่ง init LIFF ด้วย ID ของจริง
     await liff.init({ liffId: '2010880429-sx53ElMd' })
     
-    // 2. เช็คว่าถ้ายังไม่ได้ล็อกอิน ให้บังคับล็อกอิน LINE ทันที
     if (!liff.isLoggedIn()) {
+      alert('⚠️ ยังไม่ได้ล็อกอิน LINE กำลังพาไปล็อกอิน...')
       liff.login()
       return
     }
 
-    // 3. ถ้าล็อกอินแล้ว ดึง LINE User ID จริงมาใส่ตัวแปรทันที
     const profile = await liff.getProfile()
     userId.value = profile.userId
-    console.log('✅ LINE User ID จริง:', userId.value)
+    
+    // 💡 เด้งโชว์ไอดีไลน์จริงบนมือถือเลย เพื่อพิสูจน์ว่ามันดึงมาได้แล้ว!
+    alert('✅ ดึงไอดีสำเร็จ: ' + userId.value)
 
   } catch (error) {
-    console.log('⚠️ เปิดผ่านคอมพิวเตอร์เท่านั้นถึงจะยอมใช้ admin:', error)
-    // บล็อกนี้จะทำงานเฉพาะตอนเปิดเทสบน Google Chrome คอมพิวเตอร์เท่านั้น
+    alert('❌ เกิดข้อผิดพลาด LIFF: ' + JSON.stringify(error))
     userId.value = 'admin'
   }
 
-  // 4. สั่งดึงข้อมูลกระเป๋าเงินของ User คนนั้นๆ
   fetchMonthData()
 })
 </script>

@@ -571,7 +571,7 @@ const debtorsData = ref({})
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
 const selectedDayInfo = ref(null) // สำหรับเก็บข้อมูลวันที่กดดูในปฏิทิน
-
+const isLocked = ref(false)
 const viewDate = ref(new Date())
 const currentDate = new Date()
 const thMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
@@ -620,7 +620,9 @@ const verifyPin = () => {
   const pinStr = enteredPin.value.join('')
   if (pinStr === correctPin) {
     showPinModal.value = false
+    isLocked.value = false
     isAdminMode.value = true
+
     userId.value = 'admin' // บังคับสลับไปใช้กระเป๋า admin
     fetchMonthData()
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
@@ -981,26 +983,28 @@ onMounted(async () => {
   try {
     await liff.init({ liffId: '2010880429-sx53ElMd' })
     
-    // 💡 เช็คว่าเปิดผ่านแอป LINE บนมือถือจริงไหม (ใช้ liff.isInClient())
+    // เช็คว่าเปิดผ่านแอป LINE บนมือถือจริงไหม
     if (liff.isInClient()) {
-      // ถ้าเปิดผ่าน "ในแอป LINE" ถึงจะบังคับล็อกอินและดึงไอดีส่วนตัว
       if (!liff.isLoggedIn()) {
         liff.login()
         return
       }
       const profile = await liff.getProfile()
       userId.value = profile.userId // ใช้ไอดีไลน์จริง
+      fetchMonthData() // ดึงข้อมูลเลย ไม่ต้องใส่รหัส
     } else {
-      // 💻 ถ้าเปิดผ่านเว็บเบราว์เซอร์บนคอมพิวเตอร์ ปล่อยให้ใช้ 'admin' ทันที (ไม่เด้งไป LINE แน่นอน!)
-      userId.value = 'admin'
-      console.log('💻 โหมดคอมพิวเตอร์: ใช้งานในฐานะ admin')
+      // 💻 ถ้าเปิดผ่านเว็บเบราว์เซอร์ปกติ ให้ทำการล็อกหน้าจอและเด้งให้ใส่ PIN ก่อนเลย
+      isLocked.value = true // ล็อกหน้าเว็บ
+      showPinModal.value = true // เปิดหน้าต่างกรอกรหัส
+      isLoading.value = false // ปิดวงแหวนโหลด
     }
   } catch (error) {
     console.error('LIFF Init Error:', error)
-    userId.value = 'admin' // ถ้าพังให้ fallback เป็น admin
+    // ถ้าพังก็ให้ล็อกหน้าจอเหมือนกัน
+    isLocked.value = true
+    showPinModal.value = true
+    isLoading.value = false
   }
-
-  fetchMonthData()
 })
 </script>
 

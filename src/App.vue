@@ -1,406 +1,441 @@
 <template>
-  <div class="flex flex-col h-full relative font-sans bg-brand-bg text-white">
+  <div class="flex flex-col h-full relative font-sans bg-brand-bg text-white overflow-hidden">
     
     <!-- แจ้งเตือน Toast -->
-    <div v-if="toastMsg" class="fixed top-safe mt-5 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full font-semibold shadow-lg z-[9999] transition-all whitespace-nowrap"
-         :class="isError ? 'bg-red-500' : 'bg-green-500'">
-      {{ toastMsg }}
-    </div>
+    <Transition name="toast">
+      <div v-if="toastMsg" class="fixed top-safe mt-5 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full font-semibold shadow-xl z-[9999] whitespace-nowrap flex items-center gap-2"
+           :class="isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white'">
+        {{ toastMsg }}
+      </div>
+    </Transition>
 
     <!-- 🌟 ส่วนเนื้อหาหลัก 🌟 -->
-    <main class="flex-1 overflow-y-auto pb-24">
+    <main class="flex-1 overflow-y-auto pb-24 scroll-smooth">
       
-      <!-- 🏠 แท็บหน้าแรก -->
-      <section v-if="currentTab === 'home'" class="p-4">
-        <div class="bg-brand-yellow text-slate-800 p-5 rounded-2xl shadow-lg relative mb-4">
-          <div class="flex items-center gap-4 text-sky-700 font-semibold mb-4 text-lg">
-            <button @click="changeMonth(-1)" class="hover:opacity-70 px-2 select-none">&lt;</button>
-            <span>📅 {{ monthDisplay }}</span>
-            <button @click="changeMonth(1)" class="hover:opacity-70 px-2 select-none">&gt;</button>
-          </div>
-          <div class="flex justify-between items-start">
-            <div class="flex flex-col gap-2">
-              <div>
-                <p class="text-sm font-medium text-slate-600">ยอดเงินคงเหลือรวม (All)</p>
-                <p class="text-3xl font-bold leading-tight">{{ totalBalance.toLocaleString('th-TH') }} ฿</p>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-slate-600">ยอดใช้จ่ายเดือนนี้</p>
-                <p class="text-xl font-bold text-red-500">{{ totalExpense.toLocaleString('th-TH') }} ฿</p>
-              </div>
-            </div>
-            <button @click="isSummaryOpen = true" class="bg-blue-700 text-white px-3 py-2 rounded-full text-sm font-semibold flex items-center gap-1 hover:bg-blue-800 transition active:scale-95 shadow-md">
-              <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/></svg>
-              ดูสรุป
-            </button>
-          </div>
-        </div>
-
-        <div v-if="isLoading" class="text-center text-slate-400 py-10">กำลังโหลดข้อมูล... ⏳</div>
-        <div v-else-if="groupedRecords.length === 0" class="text-center text-slate-400 py-10">ไม่มีรายการในเดือนนี้</div>
+      <!-- ใช้ Transition จัดการเอฟเฟกต์ตอนสลับหน้า -->
+      <Transition name="fade" mode="out-in">
         
-        <div v-else v-for="group in groupedRecords" :key="group.date" class="flex mt-2 border-t border-slate-800 pt-2">
-          <div class="w-16 text-center pt-4 border-l-4 border-brand-yellow text-brand-yellow">
-            <div class="text-xs">วันที่</div>
-            <div class="text-xl font-bold">{{ group.day }}</div>
-          </div>
-          <div class="flex-1 bg-brand-card p-4 rounded-r-xl">
-            <div class="flex justify-end gap-2 border-b border-slate-700 pb-2 mb-3 text-sm">
-              <span v-if="group.expense > 0" class="text-red-400">↓ จ่าย {{ group.expense.toLocaleString('th-TH') }}</span>
-              <span v-if="group.income > 0" class="text-green-400">↑ รับ {{ group.income.toLocaleString('th-TH') }}</span>
+        <!-- 🏠 แท็บหน้าแรก -->
+        <section v-if="currentTab === 'home'" key="home" class="p-4">
+          <div class="bg-brand-yellow text-slate-800 p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative mb-4 transition-transform hover:scale-[1.02]">
+            <div class="flex items-center gap-4 text-sky-700 font-bold mb-4 text-lg">
+              <button @click="changeMonth(-1)" class="hover:opacity-70 px-2 select-none active:scale-75 transition-transform">&lt;</button>
+              <span>📅 {{ monthDisplay }}</span>
+              <button @click="changeMonth(1)" class="hover:opacity-70 px-2 select-none active:scale-75 transition-transform">&gt;</button>
             </div>
-            
-            <div v-for="item in group.items" :key="item.id" class="flex justify-between items-center mb-4">
+            <div class="flex justify-between items-start">
+              <div class="flex flex-col gap-2">
+                <div>
+                  <p class="text-sm font-medium text-slate-600">ยอดเงินคงเหลือรวม</p>
+                  <p class="text-3xl font-extrabold leading-tight tracking-tight">{{ totalBalance.toLocaleString('th-TH') }} ฿</p>
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-slate-600">ยอดใช้จ่ายเดือนนี้</p>
+                  <p class="text-xl font-bold text-red-500">{{ totalExpense.toLocaleString('th-TH') }} ฿</p>
+                </div>
+              </div>
+              <button @click="isSummaryOpen = true" class="bg-blue-700 text-white px-4 py-2.5 rounded-full text-sm font-bold flex items-center gap-1.5 hover:bg-blue-800 transition-all active:scale-90 shadow-lg">
+                <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/></svg>
+                สรุป
+              </button>
+            </div>
+          </div>
+
+          <!-- สถานะกำลังโหลดแบบใหม่ (สวยขึ้น) -->
+          <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 text-sky-400 gap-3">
+            <svg class="animate-spin h-10 w-10 text-brand-yellow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span class="animate-pulse font-medium">กำลังซิงค์ข้อมูล...</span>
+          </div>
+          
+          <div v-else-if="groupedRecords.length === 0" class="flex flex-col items-center justify-center py-16 text-slate-400 gap-2">
+            <span class="text-4xl">🍃</span>
+            <span>ยังไม่มีรายการในเดือนนี้</span>
+          </div>
+          
+          <div v-else v-for="group in groupedRecords" :key="group.date" class="flex mt-3 border-t border-slate-800/50 pt-3">
+            <div class="w-16 text-center pt-3 border-l-4 border-brand-yellow text-brand-yellow">
+              <div class="text-[10px] uppercase tracking-wider font-bold opacity-80">วันที่</div>
+              <div class="text-2xl font-black">{{ group.day }}</div>
+            </div>
+            <div class="flex-1 bg-brand-card p-4 rounded-2xl shadow-sm border border-slate-700/30">
+              <div class="flex justify-end gap-3 border-b border-slate-700/50 pb-2 mb-3 text-xs font-semibold tracking-wide">
+                <span v-if="group.expense > 0" class="text-red-400 bg-red-400/10 px-2 py-0.5 rounded">↓ {{ group.expense.toLocaleString('th-TH') }}</span>
+                <span v-if="group.income > 0" class="text-green-400 bg-green-400/10 px-2 py-0.5 rounded">↑ {{ group.income.toLocaleString('th-TH') }}</span>
+              </div>
+              
+              <div v-for="item in group.items" :key="item.id" class="flex justify-between items-center mb-4 last:mb-0 group">
+                <div>
+                  <p class="text-white font-medium text-sm">
+                    <span v-if="item.type === 'ย้ายเงิน'">🔄 ย้ายเงิน</span>
+                    <span v-else-if="item.type === 'ให้ยืมเงิน'">📤 ให้ยืม: {{ item.category }}</span>
+                    <span v-else-if="item.type === 'ได้คืนจากลูกหนี้'">📥 ได้คืนจาก: {{ item.category }}</span>
+                    <span v-else>{{ item.category }}</span>
+                    <span class="text-[10px] text-slate-400 ml-2 font-normal bg-slate-800 px-1.5 py-0.5 rounded" v-if="item.time && item.time !== '-'">{{ item.time.substring(0,5) }} น.</span>
+                  </p>
+                  <p class="text-slate-400 text-xs mt-1">
+                    <template v-if="item.type === 'ย้ายเงิน'">{{ item.account }} ➡️ {{ item.category }}</template>
+                    <template v-else>{{ item.account }}</template>
+                    <span v-if="item.note && item.note !== '-'" class="italic text-slate-300"> ({{ item.note }})</span>
+                  </p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <span class="font-bold text-sm tracking-wide" :class="isExpense(item.type) ? 'text-red-400' : (isIncome(item.type) ? 'text-green-400' : 'text-yellow-400')">
+                    {{ isExpense(item.type) ? '-' : (isIncome(item.type) ? '+' : '') }}{{ item.amount.toLocaleString('th-TH') }}
+                  </span>
+                  <button @click="deleteRecord(item)" class="text-slate-600 hover:text-red-500 active:scale-75 transition-all p-1 bg-slate-800/50 hover:bg-red-500/10 rounded-lg">🗑️</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 📅 แท็บปฏิทินออมเงิน -->
+        <section v-else-if="currentTab === 'calendar'" key="calendar" class="p-4">
+          <!-- (คงเนื้อหาเดิมไว้ แต่เพิ่ม key ให้ Transition ทำงาน) -->
+          <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
+            📅 ปฏิทินออมเงิน
+          </div>
+          
+          <div class="bg-brand-card border border-blue-500/50 border-dashed rounded-xl p-4 mb-5 shadow-sm">
+            <div class="text-sm font-semibold mb-2 text-blue-400">🔮 โหมดจำลองรายรับล่วงหน้า</div>
+            <div class="flex gap-2">
+              <input type="number" v-model.number="simulatedIncomeInput" placeholder="จำลองรายรับ..." class="flex-1 p-2 rounded-lg bg-slate-800/50 focus:bg-slate-800 text-white outline-none transition-colors border border-transparent focus:border-blue-500/50">
+              <button @click="applySimulation" class="bg-blue-600 text-white px-4 rounded-lg font-bold active:scale-90 transition-transform">จำลอง</button>
+              <button v-if="simulatedIncome > 0" @click="clearSimulation" class="bg-red-500 text-white px-4 rounded-lg font-bold active:scale-90 transition-transform">ล้าง</button>
+            </div>
+            <div v-if="simulatedIncome > 0" class="text-[11px] text-yellow-400 mt-2">* หักลบเงินจำลอง {{ simulatedIncome.toLocaleString('th-TH') }} ฿ แล้ว</div>
+          </div>
+
+          <div class="bg-gradient-to-br from-sky-600 to-blue-700 rounded-2xl p-5 shadow-lg mb-5 text-white">
+            <div class="text-sm font-semibold mb-1 text-sky-100 opacity-90">🎯 สถานะเป้าหมายปัจจุบัน</div>
+            <div class="flex justify-between items-end mb-4">
               <div>
-                <p class="text-white font-medium text-sm">
-                  <span v-if="item.type === 'ย้ายเงิน'">🔄 ย้ายเงิน</span>
-                  <span v-else-if="item.type === 'ให้ยืมเงิน'">📤 ให้ยืม: {{ item.category }}</span>
-                  <span v-else-if="item.type === 'ได้คืนจากลูกหนี้'">📥 ได้คืนจาก: {{ item.category }}</span>
-                  <span v-else>{{ item.category }}</span>
-                  <span class="text-xs text-slate-400 ml-1 font-normal" v-if="item.time && item.time !== '-'">({{ item.time.substring(0,5) }} น.)</span>
-                </p>
-                <p class="text-slate-400 text-xs mt-1">
-                  <template v-if="item.type === 'ย้ายเงิน'">{{ item.account }} ➡️ {{ item.category }}</template>
-                  <template v-else>{{ item.account }}</template>
-                  <span v-if="item.note && item.note !== '-'"> ({{ item.note }})</span>
-                </p>
+                <div class="text-xs text-sky-200">ยอดเงินที่ยังขาด{{ simulatedIncome > 0 ? ' (หลังจำลอง)' : '' }}</div>
+                <div class="text-3xl font-black tracking-tight">{{ calData.displayGap > 0 ? calData.displayGap.toLocaleString('th-TH', {minimumFractionDigits: 2}) : '0' }} ฿</div>
+              </div>
+              <div class="text-right">
+                <div class="text-xs text-sky-200">ต้องเก็บ{{ calData.isCurrentMonth ? 'พรุ่งนี้' : 'ต่อวัน' }}</div>
+                <div class="text-lg font-bold text-yellow-300">{{ calData.displayGap > 0 ? calData.nextTargetTommorow.toLocaleString('th-TH', {minimumFractionDigits: 2}) : '0' }} ฿/วัน</div>
+              </div>
+            </div>
+            <div class="bg-white/20 p-2.5 rounded-xl text-sm text-center font-medium backdrop-blur-sm">
+              <span v-if="calData.displayGap <= 0">🎉 ยินดีด้วย! มีเงินพอจ่ายบิลทั้งหมดแล้ว</span>
+              <span v-else>เหลือเวลาอีก {{ calData.daysLeft }} วัน ในเดือนนี้</span>
+            </div>
+          </div>
+
+          <h3 class="text-base font-bold mb-3 text-slate-300 flex items-center gap-2"><span class="w-1.5 h-4 bg-blue-500 rounded-full inline-block"></span> ประวัติการเก็บเงินรายวัน</h3>
+          <div v-for="d in calData.calendarData" :key="d.day" class="bg-brand-card rounded-xl p-4 mb-3 border-l-4 shadow-sm hover:translate-x-1 transition-transform" :class="d.diff >= 0 || (d.target===0 && d.actual===0) ? 'border-green-500' : 'border-red-500'">
+            <div class="flex justify-between mb-2 border-b border-slate-700/50 pb-2">
+              <div class="font-bold" :class="d.isToday && calData.isCurrentMonth ? 'text-yellow-400' : 'text-white'">{{ d.isToday && calData.isCurrentMonth ? '📌 วันนี้' : `วันที่ ${d.day}` }}</div>
+              <div class="text-xs font-medium text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">เป้า: {{ d.target.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
+            </div>
+            <div class="flex justify-between items-center mb-1">
+              <div class="text-sm text-slate-300">เก็บได้จริง:</div>
+              <div class="text-lg font-bold" :class="d.actual >= 0 ? 'text-green-500' : 'text-red-500'">{{ d.actual > 0 ? '+' : '' }}{{ d.actual.toLocaleString('th-TH') }} ฿</div>
+            </div>
+            <div class="flex justify-between items-center text-xs mt-2">
+              <div :class="d.diff >= 0 ? 'text-green-500' : 'text-red-500'" class="font-medium" v-if="!(d.target===0 && d.actual===0)">
+                {{ d.diff >= 0 ? '🟢 ทะลุเป้า' : '🔴 พลาดเป้า' }} ({{ d.diff >= 0 ? '+' : '-' }}{{ Math.abs(d.diff).toLocaleString('th-TH', {minimumFractionDigits: 2}) }})
+              </div>
+              <div class="text-slate-500" v-else>-</div>
+              
+              <div v-if="d.isPast && calData.currentGapReal > 0" class="text-slate-400">เป้าถัดไป {{ d.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
+              <div v-if="d.isToday && calData.isCurrentMonth && calData.displayGap > 0" class="text-yellow-400 font-medium">เป้าพรุ่งนี้ {{ d.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 🤝 แท็บคนยืมเงิน -->
+        <section v-else-if="currentTab === 'debtors'" key="debtors" class="p-4">
+          <!-- (เนื้อหาเหมือนเดิม เพิ่ม key และปรับปุ่มนิดหน่อย) -->
+          <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
+            🤝 คนยืมเงิน (ลูกหนี้)
+          </div>
+          <div class="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-5 text-white text-center">
+            <div class="text-sm font-medium mb-1 opacity-90">ยอดเงินที่คนอื่นยืมไปรวม</div>
+            <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
+          </div>
+          <button @click="openForm('debtor')" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/50 py-3.5 rounded-2xl font-bold mb-4 active:scale-95 transition-all shadow-sm hover:bg-blue-600 hover:text-white">+ จดให้ยืม / ได้คืน</button>
+          
+          <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-16 flex flex-col items-center gap-2">
+            <span class="text-4xl">😇</span>
+            <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
+          </div>
+          <div v-else v-for="d in debtorsList" :key="d.name" class="bg-brand-card rounded-2xl p-4 mb-3 flex justify-between items-center border-l-4 border-violet-500 shadow-sm hover:translate-x-1 transition-transform">
+            <div class="flex items-center gap-4">
+              <div class="bg-violet-500/20 text-violet-400 p-2.5 rounded-xl text-xl">👤</div>
+              <div>
+                <div class="font-bold text-base text-white">{{ d.name }}</div>
+                <div class="text-xs text-slate-400">ยอดค้างชำระทั้งหมด</div>
+              </div>
+            </div>
+            <div class="text-yellow-400 font-bold text-xl">{{ d.amount.toLocaleString('th-TH') }} ฿</div>
+          </div>
+        </section>
+
+        <!-- 📋 แท็บบิลรายเดือน -->
+        <section v-else-if="currentTab === 'bills'" key="bills" class="p-4">
+          <!-- (เนื้อหาเหมือนเดิม เพิ่ม key) -->
+          <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
+            📋 บิลรายเดือน
+          </div>
+          <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-6 shadow-lg mb-4 text-white text-center">
+            <div class="text-sm font-medium mb-1 opacity-90">ยอดบิลชำระแล้วเดือนนี้</div>
+            <div class="text-4xl font-black tracking-tight">{{ billsData.totalPaid.toLocaleString('th-TH') }} ฿</div>
+          </div>
+          <button @click="openForm('bill')" class="w-full bg-orange-500/20 text-orange-400 border border-orange-500/50 py-3.5 rounded-2xl font-bold mb-5 active:scale-95 transition-all shadow-sm hover:bg-orange-500 hover:text-white">+ จดบิลเพิ่ม</button>
+
+          <!-- ซ่อนโหมดจำลองในหน้าบิลไปก่อน เพื่อไม่ให้เกะกะ ถ้าอยากใช้ก็เปิดได้ -->
+          <!-- ... -->
+
+          <div v-if="billsData.totalUnpaid > 0">
+            <div v-if="billsData.remainingToSave <= 0" class="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-5 backdrop-blur-sm">
+              <div class="text-xs text-green-400 mb-1 font-bold">🎯 เป้าหมายเตรียมเงินจ่ายบิล</div>
+              <div class="text-sm font-medium text-green-300">🎉 ตอนนี้ยอดเงินคงเหลือพอจ่ายบิลทั้งหมดแล้วครับ!</div>
+            </div>
+            <div v-else class="bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-5 backdrop-blur-sm">
+              <div class="text-xs text-red-400 mb-1 font-bold">🎯 ขาดเงินอีก {{ billsData.remainingToSave.toLocaleString('th-TH') }} ฿ (เหลือ {{ calData.daysLeft }} วัน)</div>
+              <div class="text-sm font-medium text-red-300">ต้องเก็บเงินเพิ่มวันละ: <span class="font-bold text-white bg-red-500/20 px-1.5 py-0.5 rounded">{{ billsData.dailySave.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</span></div>
+            </div>
+
+            <h3 class="text-sm font-bold mb-3 text-red-400 flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> ยอดค้างชำระ ({{ billsData.totalUnpaid.toLocaleString('th-TH') }} ฿)</h3>
+            <div v-for="b in billsData.unpaid" :key="b.id" class="bg-brand-card rounded-xl p-3 mb-3 flex justify-between items-center border-l-4 border-red-500 shadow-sm active:scale-[0.98] transition-transform">
+              <div class="flex items-center gap-3 flex-1 cursor-pointer" @click="payUnpaidBill(b)">
+                <div class="bg-red-500/20 text-red-400 p-2.5 rounded-xl text-lg">⏳</div>
+                <div>
+                  <div class="font-bold text-sm text-red-400">{{ b.category }} <span class="text-[10px] bg-slate-800 text-slate-300 px-1 rounded ml-1" v-if="b.time!=='-'">{{ b.time.substring(0,5) }}</span></div>
+                  <div class="text-[11px] text-slate-400 mt-1">{{ b.date }} <span v-if="b.note!=='-'" class="text-yellow-400 font-medium">• {{ b.note }}</span> <span class="text-blue-400 ml-1">(คลิกเพื่อจ่าย 👆)</span></div>
+                </div>
               </div>
               <div class="flex items-center gap-3">
-                <span class="font-semibold text-sm" :class="isExpense(item.type) ? 'text-red-400' : (isIncome(item.type) ? 'text-green-400' : 'text-yellow-400')">
-                  {{ isExpense(item.type) ? '-' : (isIncome(item.type) ? '+' : '') }}{{ item.amount.toLocaleString('th-TH') }}
-                </span>
-                <button @click="deleteRecord(item)" class="text-slate-500 hover:text-red-500 transition px-1">🗑️</button>
+                <div class="text-red-400 font-bold text-base">{{ b.amount.toLocaleString('th-TH') }} ฿</div>
+                <button @click="deleteRecord(b)" class="text-slate-600 hover:text-red-500 p-1.5 bg-slate-800/50 hover:bg-red-500/10 rounded-lg active:scale-75 transition-all">🗑️</button>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- 📅 แท็บปฏิทินออมเงิน -->
-      <section v-else-if="currentTab === 'calendar'" class="p-4">
-        <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
-          📅 ปฏิทินออมเงิน
-        </div>
-        
-        <div class="bg-brand-card border border-blue-500 border-dashed rounded-xl p-4 mb-5">
-          <div class="text-sm font-semibold mb-2 text-blue-400">🔮 โหมดจำลองรายรับล่วงหน้า</div>
-          <div class="flex gap-2">
-            <input type="number" v-model.number="simulatedIncomeInput" placeholder="จำลองรายรับ..." class="flex-1 p-2 rounded-lg bg-brand-bg text-white outline-none">
-            <button @click="applySimulation" class="bg-blue-500 text-white px-4 rounded-lg font-bold active:scale-95 transition">จำลอง</button>
-            <button v-if="simulatedIncome > 0" @click="clearSimulation" class="bg-red-500 text-white px-4 rounded-lg font-bold active:scale-95 transition">ล้าง</button>
-          </div>
-          <div v-if="simulatedIncome > 0" class="text-[11px] text-yellow-400 mt-2">* หักลบเงินจำลอง {{ simulatedIncome.toLocaleString('th-TH') }} ฿ แล้ว</div>
-        </div>
-
-        <div class="bg-gradient-to-br from-sky-600 to-blue-700 rounded-xl p-4 shadow-lg mb-5 text-white">
-          <div class="text-sm font-semibold mb-1 text-sky-100">🎯 สถานะเป้าหมายปัจจุบัน</div>
-          <div class="flex justify-between items-end mb-3">
-            <div>
-              <div class="text-xs text-sky-200">ยอดเงินที่ยังขาด{{ simulatedIncome > 0 ? ' (หลังจำลอง)' : '' }}</div>
-              <div class="text-2xl font-bold">{{ calData.displayGap > 0 ? calData.displayGap.toLocaleString('th-TH', {minimumFractionDigits: 2}) : '0' }} ฿</div>
-            </div>
-            <div class="text-right">
-              <div class="text-xs text-sky-200">ต้องเก็บ{{ calData.isCurrentMonth ? 'พรุ่งนี้' : 'ต่อวัน' }}</div>
-              <div class="text-lg font-bold text-yellow-300">{{ calData.displayGap > 0 ? calData.nextTargetTommorow.toLocaleString('th-TH', {minimumFractionDigits: 2}) : '0' }} ฿/วัน</div>
-            </div>
-          </div>
-          <div class="bg-white/20 p-2 rounded-lg text-sm text-center">
-            <span v-if="calData.displayGap <= 0">🎉 ยินดีด้วย! มีเงินพอจ่ายบิลทั้งหมดแล้ว</span>
-            <span v-else>เหลือเวลาอีก {{ calData.daysLeft }} วัน ในเดือนนี้</span>
-          </div>
-        </div>
-
-        <h3 class="text-base font-bold mb-3 text-slate-300">ประวัติการเก็บเงินรายวัน</h3>
-        <div v-for="d in calData.calendarData" :key="d.day" class="bg-brand-card rounded-xl p-4 mb-3 border-l-4" :class="d.diff >= 0 || (d.target===0 && d.actual===0) ? 'border-green-500' : 'border-red-500'">
-          <div class="flex justify-between mb-2 border-b border-slate-700 pb-2">
-            <div class="font-bold" :class="d.isToday && calData.isCurrentMonth ? 'text-yellow-400' : 'text-white'">{{ d.isToday && calData.isCurrentMonth ? 'วันนี้' : `วันที่ ${d.day}` }}</div>
-            <div class="text-xs text-slate-400">เป้า: {{ d.target.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
-          </div>
-          <div class="flex justify-between items-center mb-1">
-            <div class="text-sm text-slate-300">เก็บได้จริง:</div>
-            <div class="text-lg font-bold" :class="d.actual >= 0 ? 'text-green-500' : 'text-red-500'">{{ d.actual > 0 ? '+' : '' }}{{ d.actual.toLocaleString('th-TH') }} ฿</div>
-          </div>
-          <div class="flex justify-between items-center text-xs">
-            <div :class="d.diff >= 0 ? 'text-green-500' : 'text-red-500'" v-if="!(d.target===0 && d.actual===0)">
-              {{ d.diff >= 0 ? '🟢 ทะลุเป้า' : '🔴 พลาดเป้า' }} ({{ d.diff >= 0 ? '+' : '-' }}{{ Math.abs(d.diff).toLocaleString('th-TH', {minimumFractionDigits: 2}) }})
-            </div>
-            <div class="text-slate-500" v-else>-</div>
-            
-            <div v-if="d.isPast && calData.currentGapReal > 0" class="text-slate-400">เป้าถัดไป {{ d.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
-            <div v-if="d.isToday && calData.isCurrentMonth && calData.displayGap > 0" class="text-yellow-400">เป้าพรุ่งนี้ {{ d.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 🤝 แท็บคนยืมเงิน -->
-      <section v-else-if="currentTab === 'debtors'" class="p-4">
-        <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
-          🤝 คนยืมเงิน (ลูกหนี้)
-        </div>
-        <div class="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl p-5 shadow-lg mb-5 text-white">
-          <div class="text-sm font-semibold mb-2">ยอดเงินที่คนอื่นยืมไปรวม</div>
-          <div class="text-4xl font-bold">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
-        </div>
-        <button @click="openForm('debtor')" class="w-full bg-blue-600 text-white py-3 rounded-full font-bold mb-4 active:scale-95 transition shadow-md">+ จดให้ยืม/ได้คืน</button>
-        
-        <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-10">ไม่มีใครยืมเงินคุณเลย 🎉</div>
-        <div v-else v-for="d in debtorsList" :key="d.name" class="bg-brand-card rounded-xl p-4 mb-3 flex justify-between items-center border-l-4 border-violet-500">
-          <div class="flex items-center gap-3">
-            <div class="bg-violet-500 p-2 rounded-lg text-xl">👤</div>
-            <div>
-              <div class="font-medium text-sm text-white">{{ d.name }}</div>
-              <div class="text-xs text-slate-400">ยอดค้างชำระทั้งหมด</div>
-            </div>
-          </div>
-          <div class="text-yellow-400 font-bold text-lg">{{ d.amount.toLocaleString('th-TH') }} ฿</div>
-        </div>
-      </section>
-
-      <!-- 📋 แท็บบิลรายเดือน -->
-      <section v-else-if="currentTab === 'bills'" class="p-4">
-        <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
-          📋 บิลรายเดือน
-        </div>
-        <div class="bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl p-5 shadow-lg mb-4 text-white">
-          <div class="text-sm font-semibold mb-2">ยอดบิลชำระแล้วเดือนนี้</div>
-          <div class="text-4xl font-bold">{{ billsData.totalPaid.toLocaleString('th-TH') }} ฿</div>
-        </div>
-        <button @click="openForm('bill')" class="w-full bg-blue-600 text-white py-3 rounded-full font-bold mb-5 active:scale-95 transition shadow-md">+ จดบิลเพิ่ม</button>
-
-        <div class="bg-brand-card border border-blue-500 border-dashed rounded-xl p-4 mb-5">
-          <div class="text-sm font-semibold mb-2 text-blue-400">🔮 โหมดจำลอง (Demo)</div>
-          <div class="text-xs text-slate-400 mb-3">กรอกรายรับล่วงหน้าเพื่อเช็คว่าเงินจะพอจ่ายบิลไหม</div>
-          <div class="flex gap-2">
-            <input type="number" v-model.number="simulatedIncomeInput" placeholder="รายรับล่วงหน้า..." class="flex-1 p-2 rounded-lg bg-brand-bg text-white outline-none">
-            <button @click="applySimulation" class="bg-blue-500 text-white px-4 rounded-lg font-bold active:scale-95 transition">จำลอง</button>
-            <button v-if="simulatedIncome > 0" @click="clearSimulation" class="bg-red-500 text-white px-4 rounded-lg font-bold active:scale-95 transition">ล้าง</button>
-          </div>
-        </div>
-
-        <div v-if="billsData.totalUnpaid > 0">
-          <div v-if="billsData.remainingToSave <= 0" class="bg-green-500/10 border border-green-500 border-dashed rounded-xl p-3 mb-4">
-            <div class="text-xs text-green-300 mb-1">🎯 เป้าหมายเตรียมเงินจ่ายบิล</div>
-            <div class="text-sm font-bold text-green-500">🎉 ตอนนี้ยอดเงินคงเหลือพอจ่ายบิลทั้งหมดแล้วครับ!</div>
-          </div>
-          <div v-else class="bg-red-500/10 border border-red-500 border-dashed rounded-xl p-3 mb-4">
-            <div class="text-xs text-red-300 mb-1">🎯 ขาดเงินอีก {{ billsData.remainingToSave.toLocaleString('th-TH') }} ฿ (เหลือ {{ calData.daysLeft }} วัน)</div>
-            <div class="text-sm font-bold text-red-500">ต้องเก็บเงินเพิ่มวันละ: {{ billsData.dailySave.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
-            <div v-if="simulatedIncome > 0" class="text-[10px] text-yellow-400 mt-1">* รวมเงินจำลองแล้ว</div>
-          </div>
-
-          <h3 class="text-sm font-bold mb-2 text-red-400">⏳ ยอดค้างชำระ ({{ billsData.totalUnpaid.toLocaleString('th-TH') }} ฿)</h3>
-          <div v-for="b in billsData.unpaid" :key="b.id" class="bg-brand-card rounded-xl p-3 mb-2 flex justify-between items-center border-l-4 border-red-500">
-            <div class="flex items-center gap-3 flex-1 cursor-pointer" @click="payUnpaidBill(b)">
-              <div class="bg-red-500 p-2 rounded-lg text-lg">⏳</div>
+          <h3 class="text-sm font-bold mb-3 mt-6 text-green-400 flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full"></span> ชำระไปแล้ว</h3>
+          <div v-if="billsData.paid.length === 0" class="text-center text-slate-500 py-6 text-sm">ยังไม่มีการจ่ายบิลในเดือนนี้</div>
+          <div v-else v-for="b in billsData.paid" :key="b.id" class="bg-brand-card rounded-xl p-3 mb-2 flex justify-between items-center border-l-4 border-green-500 opacity-70 hover:opacity-100 transition-opacity">
+            <div class="flex items-center gap-3 flex-1">
+              <div class="bg-green-500/20 text-green-400 p-2.5 rounded-xl text-lg">✅</div>
               <div>
-                <div class="font-medium text-sm text-red-400">{{ b.category }} <span class="text-xs ml-1" v-if="b.time!=='-'">({{ b.time.substring(0,5) }} น.)</span> 👆</div>
-                <div class="text-xs text-slate-400 mt-1">{{ b.date }} <span v-if="b.note!=='-'" class="text-yellow-400">• {{ b.note }}</span></div>
+                <div class="font-bold text-sm text-white">{{ b.category }} <span class="text-[10px] bg-slate-800 text-slate-400 px-1 rounded ml-1" v-if="b.time!=='-'">{{ b.time.substring(0,5) }}</span></div>
+                <div class="text-[11px] text-slate-400 mt-1">{{ b.date }} • หักจาก {{ b.account }}</div>
               </div>
             </div>
             <div class="flex items-center gap-3">
-              <div class="text-red-400 font-bold">{{ b.amount.toLocaleString('th-TH') }} ฿</div>
-              <button @click="deleteRecord(b)" class="text-slate-500 hover:text-red-500 px-1">🗑️</button>
+              <div class="text-white font-bold">{{ b.amount.toLocaleString('th-TH') }} ฿</div>
+              <button @click="deleteRecord(b)" class="text-slate-600 hover:text-red-500 p-1 bg-slate-800/50 rounded-lg active:scale-75 transition-all">🗑️</button>
             </div>
           </div>
-        </div>
-
-        <h3 class="text-sm font-bold mb-2 mt-4 text-slate-400">✅ ชำระไปแล้ว</h3>
-        <div v-if="billsData.paid.length === 0" class="text-center text-slate-500 py-4 text-sm">ยังไม่มีการจ่ายบิลในเดือนนี้</div>
-        <div v-else v-for="b in billsData.paid" :key="b.id" class="bg-brand-card rounded-xl p-3 mb-2 flex justify-between items-center border-l-4 border-green-500">
-          <div class="flex items-center gap-3 flex-1">
-            <div class="bg-green-500 p-2 rounded-lg text-lg">✅</div>
-            <div>
-              <div class="font-medium text-sm text-white">{{ b.category }} <span class="text-xs text-slate-400 ml-1" v-if="b.time!=='-'">({{ b.time.substring(0,5) }} น.)</span></div>
-              <div class="text-xs text-slate-400 mt-1">{{ b.date }} • {{ b.account }}</div>
-            </div>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="text-white font-bold">{{ b.amount.toLocaleString('th-TH') }} ฿</div>
-            <button @click="deleteRecord(b)" class="text-slate-500 hover:text-red-500 px-1">🗑️</button>
-          </div>
-        </div>
-      </section>
-
+        </section>
+      </Transition>
     </main>
 
-    <!-- 🌟 หน้าต่างสรุป (Modal) -->
-    <div v-if="isSummaryOpen" class="absolute inset-0 bg-brand-bg z-50 flex flex-col">
-      <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between rounded-b-2xl shadow-md">
-        <button @click="isSummaryOpen = false" class="text-slate-800 font-bold px-2 py-1">&lt; กลับ</button>
-        <div class="font-bold text-lg text-slate-800">📊 สรุปพฤติกรรม</div>
-        <div class="w-10"></div>
-      </div>
-      <div class="p-4 overflow-y-auto flex-1 pb-24">
-        
-        <div class="bg-brand-card border border-slate-700 rounded-xl p-4 mb-4">
-          <h3 class="text-white font-bold mb-3">💰 ยอดเงินคงเหลือแต่ละบัญชี</h3>
-          <div v-for="(bal, acc) in accountBalances" :key="acc" class="flex justify-between text-sm py-2 border-b border-slate-700 border-dashed last:border-0">
-            <span class="text-slate-300">{{ acc }}</span>
-            <span class="font-bold" :class="bal >= 0 ? 'text-green-500' : 'text-red-500'">{{ bal.toLocaleString('th-TH') }} ฿</span>
-          </div>
+    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up -->
+    <Transition name="slide-up">
+      <div v-if="isSummaryOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
+        <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between shadow-md relative z-10">
+          <button @click="isSummaryOpen = false" class="text-slate-800 font-bold px-2 py-1 active:scale-90 transition-transform flex items-center gap-1">
+            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg> กลับ
+          </button>
+          <div class="font-bold text-lg text-slate-800">📊 สรุปพฤติกรรม</div>
+          <div class="w-16"></div>
         </div>
-
-        <div class="bg-brand-card border border-slate-700 rounded-xl p-4 mb-4">
-          <h3 class="text-white font-bold mb-4">⚖️ ภาพรวมเดือนนี้</h3>
-          <div class="mb-4">
-            <div class="flex justify-between text-sm mb-1"><span class="text-green-500">รายรับ</span><span class="text-green-500 font-bold">+{{ totalIncome.toLocaleString('th-TH') }} ฿</span></div>
-            <div class="bg-slate-800 h-2.5 rounded-full overflow-hidden"><div class="bg-green-500 h-full" :style="{ width: incWidth + '%' }"></div></div>
-          </div>
-          <div>
-            <div class="flex justify-between text-sm mb-1"><span class="text-red-500">รายจ่าย (รวมบิล+ให้ยืม)</span><span class="text-red-500 font-bold">-{{ totalExpense.toLocaleString('th-TH') }} ฿</span></div>
-            <div class="bg-slate-800 h-2.5 rounded-full overflow-hidden"><div class="bg-red-500 h-full" :style="{ width: expWidth + '%' }"></div></div>
-          </div>
-          <div class="bg-slate-800 p-3 rounded-lg mt-5 flex justify-between text-center items-center">
-            <div class="flex-1">
-              <div class="text-[11px] text-slate-400 mb-1">เฉลี่ยรวม (หาร {{ daysDivisor }} วัน)</div>
-              <div class="text-lg font-bold text-yellow-400">{{ avgDailyTotal.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
-            </div>
-            <div class="w-px h-8 bg-slate-600 mx-2"></div>
-            <div class="flex-1">
-              <div class="text-[11px] text-slate-400 mb-1">ใช้จ่ายรายวัน <span class="text-sky-400">(ไม่รวมบิล)</span></div>
-              <div class="text-lg font-bold text-sky-400">{{ avgDailyGeneral.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
+        <div class="p-4 overflow-y-auto flex-1 pb-24 bg-brand-bg">
+          <!-- (เนื้อหาสรุปเดิม) -->
+          <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-5 mb-4 shadow-sm">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2"><span class="text-xl">💰</span> ยอดเงินคงเหลือแต่ละบัญชี</h3>
+            <div v-for="(bal, acc) in accountBalances" :key="acc" class="flex justify-between text-sm py-2.5 border-b border-slate-700/50 border-dashed last:border-0 hover:bg-slate-800/30 px-2 rounded-lg transition-colors">
+              <span class="text-slate-300">{{ acc }}</span>
+              <span class="font-bold" :class="bal >= 0 ? 'text-green-400' : 'text-red-400'">{{ bal.toLocaleString('th-TH') }} ฿</span>
             </div>
           </div>
-        </div>
 
-        <div class="bg-gradient-to-br from-blue-800 to-blue-500 rounded-xl p-4 shadow-lg mb-4 text-white">
-          <h3 class="font-bold mb-2">💡 วิเคราะห์พฤติกรรม</h3>
-          <p class="text-sm font-light leading-relaxed" v-html="insightText"></p>
-        </div>
-
-        <h3 class="text-slate-400 font-bold mb-3">หมวดหมู่ยอดฮิต</h3>
-        <div v-for="cat in sortedCategories" :key="cat.name" class="mb-3">
-          <div class="flex justify-between text-sm mb-1">
-            <span class="font-medium text-white">{{ cat.name }} <span class="text-[11px] text-slate-400 font-normal ml-1">(เฉลี่ย {{ cat.avg.toLocaleString('th-TH',{minimumFractionDigits: 2}) }} ฿/วัน)</span></span>
-            <span class="text-white">{{ cat.amount.toLocaleString('th-TH') }} ฿</span>
+          <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-5 mb-4 shadow-sm">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2"><span class="text-xl">⚖️</span> ภาพรวมเดือนนี้</h3>
+            <div class="mb-5">
+              <div class="flex justify-between text-sm mb-2"><span class="text-green-400 font-medium">รายรับ</span><span class="text-green-400 font-bold">+{{ totalIncome.toLocaleString('th-TH') }} ฿</span></div>
+              <div class="bg-slate-800 h-3 rounded-full overflow-hidden shadow-inner"><div class="bg-gradient-to-r from-green-600 to-green-400 h-full rounded-full transition-all duration-1000" :style="{ width: incWidth + '%' }"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-sm mb-2"><span class="text-red-400 font-medium">รายจ่าย <span class="text-[10px] text-slate-500">(รวมบิล+ยืม)</span></span><span class="text-red-400 font-bold">-{{ totalExpense.toLocaleString('th-TH') }} ฿</span></div>
+              <div class="bg-slate-800 h-3 rounded-full overflow-hidden shadow-inner"><div class="bg-gradient-to-r from-red-600 to-red-400 h-full rounded-full transition-all duration-1000" :style="{ width: expWidth + '%' }"></div></div>
+            </div>
+            <div class="bg-slate-800/50 p-4 rounded-xl mt-6 flex justify-between text-center items-center border border-slate-700/30">
+              <div class="flex-1">
+                <div class="text-[11px] text-slate-400 mb-1 font-medium">เฉลี่ยรวม (หาร {{ daysDivisor }} วัน)</div>
+                <div class="text-xl font-bold text-yellow-400">{{ avgDailyTotal.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
+              </div>
+              <div class="w-px h-10 bg-slate-700 mx-2"></div>
+              <div class="flex-1">
+                <div class="text-[11px] text-slate-400 mb-1 font-medium">รายจ่ายทั่วไป <span class="text-sky-400">(ไม่รวมบิล)</span></div>
+                <div class="text-xl font-bold text-sky-400">{{ avgDailyGeneral.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
+              </div>
+            </div>
           </div>
-          <div class="bg-slate-800 h-2 rounded-full overflow-hidden"><div class="bg-brand-yellow h-full" :style="{ width: cat.percent + '%' }"></div></div>
+
+          <div class="bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl p-5 shadow-lg mb-5 text-white border border-blue-600/30 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">💡</div>
+            <h3 class="font-bold mb-3 text-blue-100 relative z-10">วิเคราะห์พฤติกรรม</h3>
+            <p class="text-sm font-light leading-relaxed relative z-10" v-html="insightText"></p>
+          </div>
+
+          <h3 class="text-slate-400 font-bold mb-4 ml-1">หมวดหมู่ยอดฮิต</h3>
+          <div v-for="(cat, index) in sortedCategories" :key="cat.name" class="mb-4 bg-brand-card p-3 rounded-xl border border-slate-800/50">
+            <div class="flex justify-between text-sm mb-2 items-center">
+              <span class="font-bold text-white flex items-center gap-2">
+                <span class="text-xs w-5 h-5 bg-slate-700 text-slate-300 rounded-full flex items-center justify-center">{{ index + 1 }}</span>
+                {{ cat.name }} 
+              </span>
+              <span class="text-white font-bold">{{ cat.amount.toLocaleString('th-TH') }} ฿</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="bg-slate-800 h-2 rounded-full overflow-hidden flex-1"><div class="bg-brand-yellow h-full rounded-full" :style="{ width: cat.percent + '%' }"></div></div>
+              <span class="text-[10px] text-slate-400 w-16 text-right">เฉลี่ย {{ cat.avg.toLocaleString('th-TH',{maximumFractionDigits: 0}) }} /วัน</span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
-    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) -->
-    <div v-if="isFormOpen" class="absolute inset-0 bg-brand-bg z-50 flex flex-col">
-      <div class="bg-brand-yellow pt-safe">
-        <div class="px-4 py-3 flex justify-between items-center">
-          <button @click="isFormOpen = false" class="text-slate-800 font-bold">ยกเลิก</button>
-        </div>
-        <!-- เมนู Tab ในฟอร์ม -->
-        <div class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
-          <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-800'" class="px-4 py-2.5 rounded-t-xl font-semibold text-sm transition">รายจ่าย</button>
-          <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-800'" class="px-4 py-2.5 rounded-t-xl font-semibold text-sm transition">รายรับ</button>
-          <button @click="formType = 'transfer'" :class="formType==='transfer' ? 'bg-brand-bg text-white' : 'text-slate-800'" class="px-4 py-2.5 rounded-t-xl font-semibold text-sm transition">ย้ายเงิน</button>
-          <button @click="formType = 'bill'" :class="formType==='bill' ? 'bg-brand-bg text-white' : 'text-slate-800'" class="px-4 py-2.5 rounded-t-xl font-semibold text-sm transition">บิล</button>
-          <button @click="formType = 'debtor'" :class="formType==='debtor' ? 'bg-brand-bg text-white' : 'text-slate-800'" class="px-4 py-2.5 rounded-t-xl font-semibold text-sm transition">ลูกหนี้</button>
-        </div>
-      </div>
-
-      <div class="p-4 flex-1 flex flex-col gap-4 overflow-y-auto">
-        <div class="text-sky-400 font-medium text-sm">{{ formDateDisplay }}</div>
-        
-        <div class="bg-brand-card p-5 rounded-2xl flex items-center gap-4">
-          <div class="text-3xl font-bold" :class="formIconColor">{{ formIcon }}</div>
-          <input type="number" v-model="formAmount" placeholder="0" class="bg-transparent border-none outline-none text-white text-4xl w-full font-light placeholder:text-slate-500">
-          <div class="text-slate-500 text-3xl font-light">฿</div>
+    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up -->
+    <Transition name="slide-up">
+      <div v-if="isFormOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
+        <div class="bg-brand-yellow pt-safe shadow-md relative z-10">
+          <div class="px-4 py-3 flex justify-between items-center">
+            <button @click="isFormOpen = false" class="text-slate-800 font-bold active:scale-90 transition-transform">✕ ยกเลิก</button>
+            <div class="font-bold text-slate-800">จดบันทึกใหม่</div>
+            <div class="w-16"></div>
+          </div>
+          <!-- เมนู Tab ในฟอร์ม -->
+          <div class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
+            <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-5 py-3 rounded-t-2xl font-bold text-sm transition-all duration-300 flex-1 text-center">รายจ่าย</button>
+            <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-5 py-3 rounded-t-2xl font-bold text-sm transition-all duration-300 flex-1 text-center">รายรับ</button>
+            <button @click="formType = 'transfer'" :class="formType==='transfer' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-5 py-3 rounded-t-2xl font-bold text-sm transition-all duration-300 flex-1 text-center">ย้ายเงิน</button>
+          </div>
         </div>
 
-        <template v-if="formType === 'transfer'">
-          <div class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <select v-model="formSourceAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none">
-              <option value="" disabled selected>โอนจากบัญชี (ต้นทาง)</option>
-              <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
-            </select>
+        <div class="p-5 flex-1 flex flex-col gap-4 overflow-y-auto bg-brand-bg">
+          <div class="text-sky-400 font-medium text-sm text-center mb-2 bg-sky-500/10 py-1.5 rounded-full">{{ formDateDisplay }}</div>
+          
+          <div class="bg-brand-card p-6 rounded-3xl flex items-center gap-4 shadow-sm border border-slate-700/50 transition-colors focus-within:border-brand-yellow/50 focus-within:bg-slate-800/80">
+            <div class="text-4xl font-bold" :class="formIconColor">{{ formIcon }}</div>
+            <input type="number" v-model="formAmount" placeholder="0" class="bg-transparent border-none outline-none text-white text-5xl w-full font-bold placeholder:text-slate-600 tracking-tight" autofocus>
+            <div class="text-slate-500 text-3xl font-light">฿</div>
           </div>
-          <div class="text-center text-sky-400 font-bold text-sm">⬇️ ย้ายเข้าบัญชี ⬇️</div>
-          <div class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <select v-model="formDestAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none">
-              <option value="" disabled selected>ย้ายเข้าบัญชี (ปลายทาง)</option>
-              <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
-            </select>
+
+          <!-- (ฟิลด์กรอกข้อมูลคงเดิม แต่ปรับ Padding และมุมให้โค้งมนขึ้น) -->
+          <template v-if="formType === 'transfer'">
+            <div class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <select v-model="formSourceAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
+                <option value="" disabled selected>โอนจากบัญชี (ต้นทาง)</option>
+                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
+              </select>
+            </div>
+            <div class="text-center text-slate-500 font-bold text-xl my-[-5px]">↓</div>
+            <div class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <select v-model="formDestAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
+                <option value="" disabled selected>ย้ายเข้าบัญชี (ปลายทาง)</option>
+                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
+              </select>
+            </div>
+          </template>
+          
+          <template v-else>
+            <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <select v-model="formDebtorAction" class="bg-transparent text-violet-400 font-bold w-full outline-none appearance-none text-base">
+                <option value="lend">📤 ให้เพื่อนยืมเงิน</option>
+                <option value="repay">📥 เพื่อนคืนเงินให้แล้ว</option>
+              </select>
+            </div>
+            <div v-if="formType === 'bill'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <select v-model="formBillStatus" class="bg-transparent text-yellow-400 font-bold w-full outline-none appearance-none text-base">
+                <option value="ยังไม่จ่าย">⏳ ค้างชำระ (ยังไม่จ่าย)</option>
+                <option value="จ่ายแล้ว">✅ จ่ายแล้ว</option>
+              </select>
+            </div>
+            <div v-show="formType !== 'bill' || formBillStatus === 'จ่ายแล้ว'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <select v-model="formAccount" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
+                <option value="" disabled selected>💳 เลือกบัญชีที่ใช้เงิน</option>
+                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
+              </select>
+            </div>
+            <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <input type="text" v-model="formDebtorName" placeholder="พิมพ์ชื่อคนยืม (เช่น นัท)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
+            </div>
+            <div v-else class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
+              <select v-model="formCategory" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
+                <option value="" disabled selected>🏷️ {{ formType === 'bill' ? 'เลือกบิล' : 'เลือกหมวดหมู่ / แท็ก' }}</option>
+                <template v-if="formType === 'expense'">
+                  <option value="อาหาร">🍔 อาหาร</option><option value="เดินทาง">🚗 เดินทาง</option><option value="BTS">🚆 BTS</option><option value="ช้อปปิ้ง">🛍️ ช้อปปิ้ง</option><option value="ทั่วไป">ทั่วไป</option>
+                </template>
+                <template v-if="formType === 'income'">
+                  <option value="เงินเดือน">💰 เงินเดือน</option><option value="จากพ่อ">👨 จากพ่อ</option><option value="จากแม่">👩 จากแม่</option><option value="อื่นๆ">อื่นๆ</option>
+                </template>
+                <template v-if="formType === 'bill'">
+                  <option value="ShopeePay">🧡 ShopeePay</option><option value="SEasyCash">💸 SEasyCash</option><option value="SPayExtra">💳 SPayExtra</option><option value="Internet">🌐 Internet</option><option value="ค่าทำฟัน">🦷 ค่าทำฟัน</option><option value="ประกันสังคม">🏥 ประกันสังคม</option><option value="บิลอื่นๆ">บิลอื่นๆ</option>
+                </template>
+              </select>
+            </div>
+          </template>
+          
+          <div class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50 focus-within:border-slate-500 transition-colors">
+            <input type="text" v-model="formNote" placeholder="📝 เพิ่มโน้ต (ทางเลือก)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
           </div>
-        </template>
-        
-        <template v-else>
-          <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <select v-model="formDebtorAction" class="bg-transparent text-violet-400 font-bold w-full outline-none appearance-none">
-              <option value="lend">📤 ให้เพื่อนยืมเงิน</option>
-              <option value="repay">📥 เพื่อนคืนเงินให้แล้ว</option>
-            </select>
-          </div>
-          <div v-if="formType === 'bill'" class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <select v-model="formBillStatus" class="bg-transparent text-yellow-400 font-bold w-full outline-none appearance-none">
-              <option value="ยังไม่จ่าย">⏳ ค้างชำระ (ยังไม่จ่าย)</option>
-              <option value="จ่ายแล้ว">✅ จ่ายแล้ว</option>
-            </select>
-          </div>
-          <div v-show="formType !== 'bill' || formBillStatus === 'จ่ายแล้ว'" class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <select v-model="formAccount" class="bg-transparent text-sky-400 w-full outline-none appearance-none">
-              <option value="" disabled selected>เลือกบัญชีที่ใช้เงิน</option>
-              <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
-            </select>
-          </div>
-          <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <input type="text" v-model="formDebtorName" placeholder="พิมพ์ชื่อคนยืม (เช่น นัท)" class="bg-transparent w-full outline-none text-white">
-          </div>
-          <div v-else class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-            <select v-model="formCategory" class="bg-transparent text-sky-400 w-full outline-none appearance-none">
-              <option value="" disabled selected>{{ formType === 'bill' ? 'เลือกบิล' : 'เลือกหมวดหมู่ / แท็ก' }}</option>
-              <template v-if="formType === 'expense'">
-                <option value="อาหาร">🍔 อาหาร</option><option value="เดินทาง">🚗 เดินทาง</option><option value="BTS">🚆 BTS</option><option value="ช้อปปิ้ง">🛍️ ช้อปปิ้ง</option><option value="ทั่วไป">ทั่วไป</option>
-              </template>
-              <template v-if="formType === 'income'">
-                <option value="เงินเดือน">💰 เงินเดือน</option><option value="จากพ่อ">👨 จากพ่อ</option><option value="จากแม่">👩 จากแม่</option><option value="อื่นๆ">อื่นๆ</option>
-              </template>
-              <template v-if="formType === 'bill'">
-                <option value="ShopeePay">🧡 ShopeePay</option><option value="SEasyCash">💸 SEasyCash</option><option value="SPayExtra">💳 SPayExtra</option><option value="Internet">🌐 Internet</option><option value="ค่าทำฟัน">🦷 ค่าทำฟัน</option><option value="ประกันสังคม">🏥 ประกันสังคม</option><option value="บิลอื่นๆ">บิลอื่นๆ</option>
-              </template>
-            </select>
-          </div>
-        </template>
-        
-        <div class="bg-brand-card p-4 rounded-xl flex items-center gap-3">
-          <input type="text" v-model="formNote" placeholder="เพิ่มโน้ต (ทางเลือก)" class="bg-transparent w-full outline-none text-white placeholder:text-slate-500">
+
+          <button @click="saveRecord" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg mt-auto active:scale-95 transition-all shadow-lg flex justify-center items-center gap-2">
+            บันทึกข้อมูล
+          </button>
         </div>
+      </div>
+    </Transition>
 
-        <button @click="saveRecord" class="w-full bg-blue-500 text-white py-4 rounded-full font-bold text-lg mt-auto active:scale-95 transition shadow-lg">บันทึก</button>
+    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่อเปิดฟอร์ม -->
+    <Transition name="fade">
+      <div v-if="!isFormOpen && !isSummaryOpen" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">
+        <button @click="openForm('expense')" class="pointer-events-auto bg-brand-blue text-white px-7 py-3.5 rounded-full font-bold shadow-[0_8px_30px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-blue-500 active:scale-90 transition-all hover:-translate-y-1">
+          <svg class="w-5 h-5 stroke-white fill-none stroke-[2.5]" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          จดเพิ่ม
+        </button>
       </div>
-    </div>
+    </Transition>
 
-    <!-- 🌟 ปุ่มลอย (FAB) -->
-    <div v-if="!isFormOpen && !isSummaryOpen" class="absolute bottom-[80px] w-full flex justify-center z-30">
-      <button @click="openForm('expense')" class="bg-brand-blue text-white px-6 py-3 rounded-full font-semibold shadow-[0_4px_15px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-blue-600 active:scale-95 transition">
-        <svg class="w-5 h-5 stroke-white fill-none stroke-2" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-        จดเพิ่ม | ∧
-      </button>
-    </div>
-
-    <!-- 🌟 Bottom Nav -->
-    <nav v-if="!isFormOpen && !isSummaryOpen" class="bg-white text-slate-500 h-[60px] pb-safe flex absolute bottom-0 w-full shadow-[0_-2px_10px_rgba(0,0,0,0.1)] z-40 rounded-t-2xl">
-      <div @click="currentTab = 'home'" :class="{'text-brand-blue font-bold': currentTab === 'home'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition active:scale-90">
-        <svg class="w-6 h-6 mb-0.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span class="text-[10px]">หน้าแรก</span>
-      </div>
-      <div @click="currentTab = 'calendar'" :class="{'text-brand-blue font-bold': currentTab === 'calendar'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition active:scale-90">
-        <svg class="w-6 h-6 mb-0.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
-        <span class="text-[10px]">ปฏิทิน</span>
-      </div>
-      <div @click="currentTab = 'debtors'" :class="{'text-brand-blue font-bold': currentTab === 'debtors'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition active:scale-90">
-        <svg class="w-6 h-6 mb-0.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
-        <span class="text-[10px]">คนยืม</span>
-      </div>
-      <div @click="currentTab = 'bills'" :class="{'text-brand-blue font-bold': currentTab === 'bills'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition active:scale-90">
-        <svg class="w-6 h-6 mb-0.5 stroke-current fill-none stroke-2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-        <span class="text-[10px]">บิล</span>
-      </div>
-    </nav>
+    <!-- 🌟 Bottom Nav แบบ Smooth -->
+    <Transition name="fade">
+      <nav v-if="!isFormOpen && !isSummaryOpen" class="bg-white text-slate-400 h-[65px] pb-safe flex fixed bottom-0 w-full max-w-[480px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 rounded-t-3xl">
+        <div @click="currentTab = 'home'" :class="{'text-brand-blue': currentTab === 'home'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-75 hover:bg-slate-50 rounded-tl-3xl relative">
+          <div v-if="currentTab === 'home'" class="absolute top-0 w-8 h-1 bg-brand-blue rounded-b-full"></div>
+          <svg class="w-6 h-6 mb-1 stroke-current fill-none stroke-[2.5] transition-transform" :class="{'scale-110': currentTab === 'home'}" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="text-[10px] font-bold transition-all" :class="{'scale-110': currentTab === 'home'}">หน้าแรก</span>
+        </div>
+        <div @click="currentTab = 'calendar'" :class="{'text-brand-blue': currentTab === 'calendar'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-75 hover:bg-slate-50 relative">
+          <div v-if="currentTab === 'calendar'" class="absolute top-0 w-8 h-1 bg-brand-blue rounded-b-full"></div>
+          <svg class="w-6 h-6 mb-1 stroke-current fill-none stroke-[2.5] transition-transform" :class="{'scale-110': currentTab === 'calendar'}" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span class="text-[10px] font-bold transition-all" :class="{'scale-110': currentTab === 'calendar'}">ปฏิทิน</span>
+        </div>
+        <div @click="currentTab = 'debtors'" :class="{'text-brand-blue': currentTab === 'debtors'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-75 hover:bg-slate-50 relative">
+          <div v-if="currentTab === 'debtors'" class="absolute top-0 w-8 h-1 bg-brand-blue rounded-b-full"></div>
+          <svg class="w-6 h-6 mb-1 stroke-current fill-none stroke-[2.5] transition-transform" :class="{'scale-110': currentTab === 'debtors'}" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          <span class="text-[10px] font-bold transition-all" :class="{'scale-110': currentTab === 'debtors'}">คนยืม</span>
+        </div>
+        <div @click="currentTab = 'bills'" :class="{'text-brand-blue': currentTab === 'bills'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-75 hover:bg-slate-50 rounded-tr-3xl relative">
+          <div v-if="currentTab === 'bills'" class="absolute top-0 w-8 h-1 bg-brand-blue rounded-b-full"></div>
+          <svg class="w-6 h-6 mb-1 stroke-current fill-none stroke-[2.5] transition-transform" :class="{'scale-110': currentTab === 'bills'}" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span class="text-[10px] font-bold transition-all" :class="{'scale-110': currentTab === 'bills'}">บิล</span>
+        </div>
+      </nav>
+    </Transition>
   </div>
 </template>
 
 <script setup>
+// === ตรงส่วนของ Script ปล่อยไว้เหมือนเดิมเป๊ะเลยครับ ไม่ต้องแก้โค้ด JS ใดๆ เลย ===
 import { ref, computed, onMounted } from 'vue'
 
-// เปลี่ยนจาก 'http://127.0.0.1:8080' เป็น:
-const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
+const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com' // <-- (อย่าลืมแก้เป็นลิงก์ Render ของคุณเหมือนเดิมนะครับ)
 
 // State
 const currentTab = ref('home')
@@ -673,13 +708,50 @@ const saveRecord = async () => {
     else showToast('❌ ' + data.message, true)
   } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
 }
+
 onMounted(() => {
   fetchMonthData()
 })
 </script>
 
 <style>
-/* ซ่อน Scrollbar ของเมนูในหน้า Form */
+/* 🌟 พระเอกของเรา: CSS สำหรับ Animation โคตรสมูท 🌟 */
+
+/* 1. เอฟเฟกต์ตอนกดเปลี่ยนแท็บเมนู (Fade + Slide นิดๆ) */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px) scale(0.98);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.98);
+}
+
+/* 2. เอฟเฟกต์หน้าต่าง Modal (เด้งจากด้านล่าง) */
+.slide-up-enter-active {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+}
+.slide-up-leave-active {
+  transition: transform 0.3s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.3s ease;
+}
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0.5;
+}
+
+/* 3. เอฟเฟกต์แจ้งเตือน (Toast) */
+.toast-enter-active, .toast-leave-active {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.toast-enter-from, .toast-leave-to {
+  opacity: 0;
+  transform: translate(-50%, -20px) scale(0.8);
+}
+
+/* ซ่อน Scrollbar ของเมนูแนวนอนในหน้า Form */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

@@ -480,7 +480,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import liff from '@line/liff'
 
-const LIFF_ID = 'YOUR_LIFF_ID_HERE'
+const LIFF_ID = '2010880429-sx53ElMd'
 const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com' // <-- (อย่าลืมแก้เป็นลิงก์ Render ของคุณเหมือนเดิมนะครับ)
 
 // State

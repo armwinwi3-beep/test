@@ -481,7 +481,7 @@
       🔐
     </div>
     <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
-    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ (0000)</p>
+    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ</p>
 
     <!-- ช่องกรอก PIN 4 ช่อง -->
     <div class="flex justify-center gap-3 mb-6">
@@ -627,7 +627,7 @@ const verifyPin = () => {
     fetchMonthData()
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
   } else {
-    showToast('❌ รหัส PIN ไม่ถูกต้อง (ใช้ 0000)', true)
+    showToast('❌ รหัส PIN ไม่ถูกต้อง', true)
     enteredPin.value = ['', '', '', '']
   }
 }

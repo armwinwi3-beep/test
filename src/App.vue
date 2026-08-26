@@ -884,9 +884,10 @@ onMounted(async () => {
     alert('✅ ดึงไอดีสำเร็จ: ' + userId.value)
 
   } catch (error) {
-    alert('❌ เกิดข้อผิดพลาด LIFF: ' + JSON.stringify(error))
-    userId.value = 'admin'
-  }
+  // พิมพ์ดูข้อความ Error จริงๆ แบบละเอียด (ไม่ใช่ค่าว่าง {})
+  alert('❌ Error Detail: ' + (error.message || JSON.stringify(error)))
+  userId.value = 'admin'
+}
 
   fetchMonthData()
 })

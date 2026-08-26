@@ -767,17 +767,21 @@ const changeMonth = (dir) => {
 
 // ในฟังก์ชัน fetchMonthData ของ src/App.vue
 const fetchMonthData = async () => {
+  // 💡 ป้องกันไม่ให้ส่งค่าว่าง: ถ้ายังไม่มี user_id ให้ใช้ 'admin' สำรองไว้ก่อน
+  const currentUserId = userId.value ? userId.value : 'admin'
+
   isLoading.value = true
   const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
   const y = String(viewDate.value.getFullYear()).slice(-2)
+  
   try {
-    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${userId.value}`)
+    // ใช้ตัวแปร currentUserId ที่ปลอดภัยแล้วแทน
+    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${currentUserId}`)
     if (!res.ok) throw new Error()
     const data = await res.json()
-    
-    // ตรงจุดนี้สำคัญมาก! เช็คดูว่าเราได้ใส่ "id: row.id" เข้าไปหรือเปล่า:
+
     records.value = (data.records || []).map(row => ({
-      id: row.id,             // <--- ต้องดึง id ตรงนี้มาจากหลังบ้าน
+      id: row.id,
       date: row.date,
       time: row.time,
       type: row.type,
@@ -787,20 +791,19 @@ const fetchMonthData = async () => {
       note: row.note,
       status: row.status
     }))
-    
+
     totalBalance.value = data.total_balance || 0
     totalExpense.value = data.total_expense || 0
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
-    
+
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
   } finally {
     isLoading.value = false
   }
 }
-
 const deleteRecord = async (item) => {
   if (!confirm(`⚠️ ต้องการลบรายการ "${item.category}" ใช่ไหมครับ?`)) return
   showToast("🗑️ กำลังลบข้อมูลหลังบ้าน...")

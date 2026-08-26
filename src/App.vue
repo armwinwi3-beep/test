@@ -945,15 +945,23 @@ onMounted(async () => {
   try {
     await liff.init({ liffId: '2010880429-sx53ElMd' })
     
-    if (!liff.isLoggedIn()) {
-      liff.login()
-      return
+    // 💡 เช็คว่าเปิดผ่านแอป LINE บนมือถือจริงไหม (ใช้ liff.isInClient())
+    if (liff.isInClient()) {
+      // ถ้าเปิดผ่าน "ในแอป LINE" ถึงจะบังคับล็อกอินและดึงไอดีส่วนตัว
+      if (!liff.isLoggedIn()) {
+        liff.login()
+        return
+      }
+      const profile = await liff.getProfile()
+      userId.value = profile.userId // ใช้ไอดีไลน์จริง
+    } else {
+      // 💻 ถ้าเปิดผ่านเว็บเบราว์เซอร์บนคอมพิวเตอร์ ปล่อยให้ใช้ 'admin' ทันที (ไม่เด้งไป LINE แน่นอน!)
+      userId.value = 'admin'
+      console.log('💻 โหมดคอมพิวเตอร์: ใช้งานในฐานะ admin')
     }
-
-    const profile = await liff.getProfile()
-    userId.value = profile.userId
   } catch (error) {
-    userId.value = 'admin'
+    console.error('LIFF Init Error:', error)
+    userId.value = 'admin' // ถ้าพังให้ fallback เป็น admin
   }
 
   fetchMonthData()

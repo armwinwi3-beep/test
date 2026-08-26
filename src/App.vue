@@ -478,7 +478,9 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import liff from '@line/liff'
 
+const LIFF_ID = 'YOUR_LIFF_ID_HERE'
 const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com' // <-- (อย่าลืมแก้เป็นลิงก์ Render ของคุณเหมือนเดิมนะครับ)
 
 // State
@@ -517,6 +519,25 @@ const formDestAcc = ref('')
 const formDebtorAction = ref('lend')
 const formDebtorName = ref('')
 
+const initLiff = async () => {
+  try {
+    await liff.init({ liffId: LIFF_ID })
+    if (!liff.isLoggedIn()) {
+      liff.login() // ถ้ายังไม่ล็อกอิน LINE ระบบจะพาไปล็อกอินอัตโนมัติ
+    } else {
+      const profile = await liff.getProfile()
+      const lineUserId = profile.userId // ได้ LINE User ID มาแล้ว!
+      
+      // นำ lineUserId ไปใช้ดึงข้อมูลเฉพาะของเจ้านั้นๆ แทนคำว่า 'admin' เดิม
+      currentUserId.value = lineUserId 
+      fetchMonthData() 
+    }
+  } catch (error) {
+    console.error('LIFF Initialization failed: ', error)
+    // กรณีรันบนคอมพิวเตอร์ทั่วไป (ไม่ได้เปิดผ่าน LINE) ให้ fallback ใช้ 'admin' ตามเดิมได้เลยครับ
+    fetchMonthData()
+  }
+}
 // Helpers
 const showToast = (msg, error = false) => {
   toastMsg.value = msg; isError.value = error
@@ -750,7 +771,7 @@ const fetchMonthData = async () => {
   const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
   const y = String(viewDate.value.getFullYear()).slice(-2)
   try {
-    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=admin`)
+    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${userId.value}`)
     if (!res.ok) throw new Error()
     const data = await res.json()
     
@@ -843,7 +864,20 @@ const saveRecord = async () => {
   } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    await liff.init({ liffId: LIFF_ID })
+    if (!liff.isLoggedIn()) {
+      liff.login() // ถ้ายังไม่ล็อกอิน LINE จะพาไปหน้าล็อกอินอัตโนมัติ
+    } else {
+      const profile = await liff.getProfile()
+      userId.value = profile.userId // ดึง LINE User ID ของคนที่เปิดใช้งานมาใส่สำเร็จ!
+    }
+  } catch (error) {
+    console.log('Running on normal browser (Fallback to admin):', error)
+  }
+
+  // หลังจากได้ userId แล้ว ค่อยสั่งดึงข้อมูลของ User คนนั้นๆ
   fetchMonthData()
 })
 </script>

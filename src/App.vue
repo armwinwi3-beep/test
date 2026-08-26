@@ -866,22 +866,25 @@ const saveRecord = async () => {
 
 onMounted(async () => {
   try {
-    // 1. เช็คก่อนว่ารันอยู่ในแอป LINE หรือเบราว์เซอร์ปกติ
-    if (window.liff) { 
-      await liff.init({ liffId: '2010880429-sx53ElMd' })
-      if (!liff.isLoggedIn()) {
-        liff.login()
-      } else {
-        const profile = await liff.getProfile()
-        userId.value = profile.userId // ได้ไอดีไลน์จริงมาแล้ว
-      }
+    // 1. สั่ง init LIFF ก่อน
+    await liff.init({ liffId: '2010880429-sx53ElMd' })
+    
+    if (liff.isLoggedIn()) {
+      // 2. ถ้าล็อกอินแล้ว ดึง User ID จริงมาเก็บไว้
+      const profile = await liff.getProfile()
+      userId.value = profile.userId
+      console.log('Logged in Line User ID:', userId.value)
+    } else {
+      // ถ้ายังไม่ล็อกอิน ให้สั่ง login เลย
+      liff.login()
+      return // หยุดรอจนกว่าจะล็อกอินเสร็จ
     }
   } catch (error) {
-    console.log('LIFF Init error (Using fallback ID):', error)
+    console.log('Running on normal browser, using default admin ID', error)
+    userId.value = 'admin' // ถ้าเทสบนคอม ใช้ admin ปกติ
   }
 
-  // 2. หลังจากกระบวนการ LINE เสร็จเรียบร้อย (ไม่ว่าจะสำเร็จหรือรันบนเว็บคอม) 
-  // ค่อยสั่งดึงข้อมูลจาก Render ครับ
+  // 3. เรียกดึงข้อมูลเฉพาะหลังจากได้ userId ที่แน่นอนแล้วเท่านั้น!
   fetchMonthData()
 })
 </script>

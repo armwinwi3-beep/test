@@ -287,7 +287,7 @@
       <div v-if="isSummaryOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between shadow-md relative z-10">
           <button @click="isSummaryOpen = false" class="text-slate-800 font-bold px-2 py-1 active:scale-90 transition-transform flex items-center gap-1">
-            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg กลับ>
+            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg> กลับ
           </button>
           <div class="font-bold text-lg text-slate-800">📊 สรุปพฤติกรรม</div>
           <div class="w-16"></div>
@@ -749,15 +749,16 @@ const deleteRecord = async (item) => {
   showToast("🗑️ กำลังลบข้อมูลหลังบ้าน...")
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date: item.date, amount: item.amount, category: item.category, month: item.sheet })
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      // เปลี่ยนตรง body ให้ส่ง id และ user_id ไปแทนของเดิมครับ
+      body: JSON.stringify({ id: item.id, user_id: 'admin' }) 
     })
     const data = await res.json()
     if (data.status === 'success') { showToast("✅ ลบสำเร็จ"); fetchMonthData() }
     else showToast('❌ ' + data.message, true)
   } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
 }
-
 const openForm = (type) => {
   formType.value = type
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''

@@ -544,9 +544,6 @@ const formIconColor = computed(() => {
   return 'text-orange-500'
 })
 
-// Home: Grouped Records
-// ฟังก์ชันจัดกลุ่มรายการตามวัน (แก้ทั้งปัญหาวันที่แตก และปัญหา ID ยาว)
-// ในฟังก์ชัน groupedRecords ของ src/App.vue
 const groupedRecords = computed(() => {
   const groups = {}
   
@@ -562,8 +559,8 @@ const groupedRecords = computed(() => {
     if (!groups[standardDateKey]) {
       groups[standardDateKey] = {
         date: standardDateKey,
-        day: day,          // <--- เปลี่ยนจาก dayNumber เป็น day ให้ตรงกับ template ครับ!
-        expense: 0,        // (เช็คชื่อตัวแปรยอดรวมรายจ่าย/รายรับให้ตรงกับ template ด้วยนะครับ)
+        day: day,
+        expense: 0,
         income: 0,
         items: []
       }
@@ -579,6 +576,15 @@ const groupedRecords = computed(() => {
     }
   })
 
+  // 🔽 เพิ่มโค้ดตรงนี้ครับ เพื่อเรียงเวลาข้างในแต่ละวันให้รายการล่าสุดขึ้นก่อน
+  Object.values(groups).forEach(group => {
+    group.items.sort((a, b) => {
+      // เทียบเวลา string เช่น "19:55:00" กับ "08:51:00" (เรียงจากมากไปน้อย)
+      return (b.time || '').localeCompare(a.time || '')
+    })
+  })
+
+  // เรียงลำดับการ์ดวันจากวันล่าสุดลงไป
   return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 

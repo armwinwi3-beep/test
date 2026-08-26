@@ -12,7 +12,6 @@
     <!-- 🌟 ส่วนเนื้อหาหลัก 🌟 -->
     <main class="flex-1 overflow-y-auto pb-24 scroll-smooth">
       
-      <!-- ใช้ Transition จัดการเอฟเฟกต์ตอนสลับหน้า -->
       <Transition name="fade" mode="out-in">
         
         <!-- 🏠 แท็บหน้าแรก -->
@@ -41,7 +40,6 @@
             </div>
           </div>
 
-          <!-- สถานะกำลังโหลดแบบใหม่ (สวยขึ้น) -->
           <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 text-sky-400 gap-3">
             <svg class="animate-spin h-10 w-10 text-brand-yellow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <span class="animate-pulse font-medium">กำลังซิงค์ข้อมูล...</span>
@@ -89,9 +87,8 @@
           </div>
         </section>
 
-        <!-- 📅 แท็บปฏิทินออมเงิน -->
+        <!-- 📅 แท็บปฏิทินออมเงิน (ออกแบบใหม่เป็น Grid) -->
         <section v-else-if="currentTab === 'calendar'" key="calendar" class="p-4">
-          <!-- (คงเนื้อหาเดิมไว้ แต่เพิ่ม key ให้ Transition ทำงาน) -->
           <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
             📅 ปฏิทินออมเงิน
           </div>
@@ -118,37 +115,82 @@
                 <div class="text-lg font-bold text-yellow-300">{{ calData.displayGap > 0 ? calData.nextTargetTommorow.toLocaleString('th-TH', {minimumFractionDigits: 2}) : '0' }} ฿/วัน</div>
               </div>
             </div>
-            <div class="bg-white/20 p-2.5 rounded-xl text-sm text-center font-medium backdrop-blur-sm">
-              <span v-if="calData.displayGap <= 0">🎉 ยินดีด้วย! มีเงินพอจ่ายบิลทั้งหมดแล้ว</span>
-              <span v-else>เหลือเวลาอีก {{ calData.daysLeft }} วัน ในเดือนนี้</span>
+          </div>
+
+          <!-- ตารางปฏิทิน (Grid) -->
+          <div class="bg-brand-card p-4 rounded-2xl shadow-lg border border-slate-700/50 mb-5">
+            <div class="flex justify-between items-center mb-3">
+              <h3 class="text-sm font-bold text-slate-300">{{ monthDisplay }}</h3>
+              <div class="text-[10px] text-slate-500 flex gap-2">
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-green-500"></div> ทะลุเป้า</span>
+                <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-full bg-red-500"></div> พลาดเป้า</span>
+              </div>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400 mb-2">
+              <div class="text-red-400">อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div class="text-blue-400">ส</div>
+            </div>
+            
+            <div class="grid grid-cols-7 gap-1.5">
+              <div v-for="(day, index) in calendarGrid" :key="index"
+                   @click="openDayInfo(day)"
+                   class="aspect-square flex flex-col items-center justify-center rounded-xl relative cursor-pointer transition-all duration-200 select-none"
+                   :class="[
+                     day.empty ? 'invisible' : 'bg-slate-800/40 hover:bg-slate-700 active:scale-90',
+                     day.isToday ? 'border-2 border-brand-yellow text-brand-yellow font-black shadow-[0_0_10px_rgba(252,211,77,0.3)]' : 'text-slate-300 font-medium',
+                     selectedDayInfo?.day === day.day ? 'ring-2 ring-blue-500 bg-blue-900/50' : ''
+                   ]">
+                <span v-if="!day.empty">{{ day.day }}</span>
+                <!-- จุดสีบอกสถานะ -->
+                <div v-if="!day.empty && day.data" class="absolute bottom-1 w-1.5 h-1.5 rounded-full"
+                     :class="day.data.diff >= 0 || (day.data.target===0 && day.data.actual===0) ? 'bg-green-500' : 'bg-red-500'">
+                </div>
+              </div>
             </div>
           </div>
 
-          <h3 class="text-base font-bold mb-3 text-slate-300 flex items-center gap-2"><span class="w-1.5 h-4 bg-blue-500 rounded-full inline-block"></span> ประวัติการเก็บเงินรายวัน</h3>
-          <div v-for="d in calData.calendarData" :key="d.day" class="bg-brand-card rounded-xl p-4 mb-3 border-l-4 shadow-sm hover:translate-x-1 transition-transform" :class="d.diff >= 0 || (d.target===0 && d.actual===0) ? 'border-green-500' : 'border-red-500'">
-            <div class="flex justify-between mb-2 border-b border-slate-700/50 pb-2">
-              <div class="font-bold" :class="d.isToday && calData.isCurrentMonth ? 'text-yellow-400' : 'text-white'">{{ d.isToday && calData.isCurrentMonth ? '📌 วันนี้' : `วันที่ ${d.day}` }}</div>
-              <div class="text-xs font-medium text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">เป้า: {{ d.target.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
-            </div>
-            <div class="flex justify-between items-center mb-1">
-              <div class="text-sm text-slate-300">เก็บได้จริง:</div>
-              <div class="text-lg font-bold" :class="d.actual >= 0 ? 'text-green-500' : 'text-red-500'">{{ d.actual > 0 ? '+' : '' }}{{ d.actual.toLocaleString('th-TH') }} ฿</div>
-            </div>
-            <div class="flex justify-between items-center text-xs mt-2">
-              <div :class="d.diff >= 0 ? 'text-green-500' : 'text-red-500'" class="font-medium" v-if="!(d.target===0 && d.actual===0)">
-                {{ d.diff >= 0 ? '🟢 ทะลุเป้า' : '🔴 พลาดเป้า' }} ({{ d.diff >= 0 ? '+' : '-' }}{{ Math.abs(d.diff).toLocaleString('th-TH', {minimumFractionDigits: 2}) }})
-              </div>
-              <div class="text-slate-500" v-else>-</div>
+          <!-- รายละเอียดของวันที่เลือก (คลิกจากตาราง) -->
+          <Transition name="fade" mode="out-in">
+            <div v-if="selectedDayInfo && !selectedDayInfo.empty" :key="selectedDayInfo.day" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 shadow-lg border-2 transition-all duration-300 relative overflow-hidden"
+                 :class="selectedDayInfo.data ? (selectedDayInfo.data.diff >= 0 || (selectedDayInfo.data.target===0 && selectedDayInfo.data.actual===0) ? 'border-green-500/50' : 'border-red-500/50') : 'border-slate-700/50'">
               
-              <div v-if="d.isPast && calData.currentGapReal > 0" class="text-slate-400">เป้าถัดไป {{ d.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
-              <div v-if="d.isToday && calData.isCurrentMonth && calData.displayGap > 0" class="text-yellow-400 font-medium">เป้าพรุ่งนี้ {{ d.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
+              <div class="flex justify-between items-center border-b border-slate-700/50 pb-3 mb-4">
+                <div class="font-bold text-lg flex items-center gap-2" :class="selectedDayInfo.isToday ? 'text-yellow-400' : 'text-white'">
+                  {{ selectedDayInfo.isToday ? '📌 วันนี้' : `📅 วันที่ ${selectedDayInfo.day} ${monthDisplay.split(' ')[0]}` }}
+                </div>
+                <div v-if="selectedDayInfo.data" class="text-xs font-bold text-slate-300 bg-slate-800/80 px-3 py-1.5 rounded-full border border-slate-700">
+                  เป้าหมาย: {{ selectedDayInfo.data.target.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿
+                </div>
+              </div>
+
+              <div v-if="selectedDayInfo.data">
+                <div class="flex justify-between items-center mb-2">
+                  <div class="text-sm text-slate-400">เก็บได้จริง:</div>
+                  <div class="text-2xl font-black" :class="selectedDayInfo.data.actual >= 0 ? 'text-green-400' : 'text-red-400'">
+                    {{ selectedDayInfo.data.actual > 0 ? '+' : '' }}{{ selectedDayInfo.data.actual.toLocaleString('th-TH') }} ฿
+                  </div>
+                </div>
+                
+                <div class="flex justify-between items-center bg-slate-800/50 p-3 rounded-xl mt-4 border border-slate-700/30">
+                  <div class="text-xs font-bold" :class="selectedDayInfo.data.diff >= 0 ? 'text-green-500' : 'text-red-500'" v-if="!(selectedDayInfo.data.target===0 && selectedDayInfo.data.actual===0)">
+                    {{ selectedDayInfo.data.diff >= 0 ? '🎉 ทะลุเป้า' : '📉 พลาดเป้า' }} ({{ selectedDayInfo.data.diff >= 0 ? '+' : '-' }}{{ Math.abs(selectedDayInfo.data.diff).toLocaleString('th-TH', {minimumFractionDigits: 2}) }})
+                  </div>
+                  <div class="text-slate-500 text-xs font-bold" v-else>✅ ตามเป้าหมาย</div>
+                  
+                  <div v-if="selectedDayInfo.data.isPast && calData.currentGapReal > 0" class="text-[10px] text-slate-400 font-medium">เป้าถัดไป {{ selectedDayInfo.data.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
+                  <div v-if="selectedDayInfo.isToday && calData.isCurrentMonth && calData.displayGap > 0" class="text-[10px] text-yellow-400 font-bold bg-yellow-400/10 px-2 py-1 rounded">เป้าพรุ่งนี้ {{ selectedDayInfo.data.nextTarget.toLocaleString('th-TH', {maximumFractionDigits: 0}) }} ฿</div>
+                </div>
+              </div>
+              <div v-else class="flex flex-col items-center justify-center py-6 text-slate-500 gap-2">
+                <span class="text-3xl">⏳</span>
+                <span class="text-sm font-medium">รอการบันทึกผล (ยังไม่ถึงกำหนด)</span>
+              </div>
             </div>
-          </div>
+          </Transition>
         </section>
 
         <!-- 🤝 แท็บคนยืมเงิน -->
         <section v-else-if="currentTab === 'debtors'" key="debtors" class="p-4">
-          <!-- (เนื้อหาเหมือนเดิม เพิ่ม key และปรับปุ่มนิดหน่อย) -->
           <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
             🤝 คนยืมเงิน (ลูกหนี้)
           </div>
@@ -156,9 +198,14 @@
             <div class="text-sm font-medium mb-1 opacity-90">ยอดเงินที่คนอื่นยืมไปรวม</div>
             <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
           </div>
-          <button @click="openForm('debtor')" class="w-full bg-blue-600/20 text-blue-400 border border-blue-500/50 py-3.5 rounded-2xl font-bold mb-4 active:scale-95 transition-all shadow-sm hover:bg-blue-600 hover:text-white">+ จดให้ยืม / ได้คืน</button>
+
+          <!-- 🌟 ปุ่มจดเพิ่มแบบใหม่ ดูน่ากดขึ้น 🌟 -->
+          <button @click="openForm('debtor')" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(124,58,237,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
+            <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            จดให้ยืม / ได้คืน
+          </button>
           
-          <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-16 flex flex-col items-center gap-2">
+          <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-12 flex flex-col items-center gap-2">
             <span class="text-4xl">😇</span>
             <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
           </div>
@@ -176,7 +223,6 @@
 
         <!-- 📋 แท็บบิลรายเดือน -->
         <section v-else-if="currentTab === 'bills'" key="bills" class="p-4">
-          <!-- (เนื้อหาเหมือนเดิม เพิ่ม key) -->
           <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
             📋 บิลรายเดือน
           </div>
@@ -184,10 +230,12 @@
             <div class="text-sm font-medium mb-1 opacity-90">ยอดบิลชำระแล้วเดือนนี้</div>
             <div class="text-4xl font-black tracking-tight">{{ billsData.totalPaid.toLocaleString('th-TH') }} ฿</div>
           </div>
-          <button @click="openForm('bill')" class="w-full bg-orange-500/20 text-orange-400 border border-orange-500/50 py-3.5 rounded-2xl font-bold mb-5 active:scale-95 transition-all shadow-sm hover:bg-orange-500 hover:text-white">+ จดบิลเพิ่ม</button>
 
-          <!-- ซ่อนโหมดจำลองในหน้าบิลไปก่อน เพื่อไม่ให้เกะกะ ถ้าอยากใช้ก็เปิดได้ -->
-          <!-- ... -->
+          <!-- 🌟 ปุ่มจดบิลแบบใหม่ ดูน่ากดขึ้น 🌟 -->
+          <button @click="openForm('bill')" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
+            <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            จดบิลเพิ่ม
+          </button>
 
           <div v-if="billsData.totalUnpaid > 0">
             <div v-if="billsData.remainingToSave <= 0" class="bg-green-500/10 border border-green-500/30 rounded-xl p-3 mb-5 backdrop-blur-sm">
@@ -234,18 +282,17 @@
       </Transition>
     </main>
 
-    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up -->
+    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up (คงเดิม) -->
     <Transition name="slide-up">
       <div v-if="isSummaryOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between shadow-md relative z-10">
           <button @click="isSummaryOpen = false" class="text-slate-800 font-bold px-2 py-1 active:scale-90 transition-transform flex items-center gap-1">
-            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg> กลับ
+            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg กลับ
           </button>
           <div class="font-bold text-lg text-slate-800">📊 สรุปพฤติกรรม</div>
           <div class="w-16"></div>
         </div>
         <div class="p-4 overflow-y-auto flex-1 pb-24 bg-brand-bg">
-          <!-- (เนื้อหาสรุปเดิม) -->
           <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-5 mb-4 shadow-sm">
             <h3 class="text-white font-bold mb-4 flex items-center gap-2"><span class="text-xl">💰</span> ยอดเงินคงเหลือแต่ละบัญชี</h3>
             <div v-for="(bal, acc) in accountBalances" :key="acc" class="flex justify-between text-sm py-2.5 border-b border-slate-700/50 border-dashed last:border-0 hover:bg-slate-800/30 px-2 rounded-lg transition-colors">
@@ -301,7 +348,7 @@
       </div>
     </Transition>
 
-    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up -->
+    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up (คงเดิม) -->
     <Transition name="slide-up">
       <div v-if="isFormOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow pt-safe shadow-md relative z-10">
@@ -310,7 +357,6 @@
             <div class="font-bold text-slate-800">จดบันทึกใหม่</div>
             <div class="w-16"></div>
           </div>
-          <!-- เมนู Tab ในฟอร์ม -->
           <div class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
             <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-5 py-3 rounded-t-2xl font-bold text-sm transition-all duration-300 flex-1 text-center">รายจ่าย</button>
             <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-5 py-3 rounded-t-2xl font-bold text-sm transition-all duration-300 flex-1 text-center">รายรับ</button>
@@ -327,7 +373,6 @@
             <div class="text-slate-500 text-3xl font-light">฿</div>
           </div>
 
-          <!-- (ฟิลด์กรอกข้อมูลคงเดิม แต่ปรับ Padding และมุมให้โค้งมนขึ้น) -->
           <template v-if="formType === 'transfer'">
             <div class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-model="formSourceAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
@@ -393,9 +438,9 @@
       </div>
     </Transition>
 
-    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่อเปิดฟอร์ม -->
+    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล 🌟 -->
     <Transition name="fade">
-      <div v-if="!isFormOpen && !isSummaryOpen" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">
+      <div v-if="!isFormOpen && !isSummaryOpen && (currentTab === 'home' || currentTab === 'calendar')" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">
         <button @click="openForm('expense')" class="pointer-events-auto bg-brand-blue text-white px-7 py-3.5 rounded-full font-bold shadow-[0_8px_30px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-blue-500 active:scale-90 transition-all hover:-translate-y-1">
           <svg class="w-5 h-5 stroke-white fill-none stroke-[2.5]" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           จดเพิ่ม
@@ -432,8 +477,7 @@
 </template>
 
 <script setup>
-// === ตรงส่วนของ Script ปล่อยไว้เหมือนเดิมเป๊ะเลยครับ ไม่ต้องแก้โค้ด JS ใดๆ เลย ===
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 
 const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com' // <-- (อย่าลืมแก้เป็นลิงก์ Render ของคุณเหมือนเดิมนะครับ)
 
@@ -451,6 +495,7 @@ const accountBalances = ref({})
 const debtorsData = ref({})
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
+const selectedDayInfo = ref(null) // สำหรับเก็บข้อมูลวันที่กดดูในปฏิทิน
 
 const viewDate = ref(new Date())
 const currentDate = new Date()
@@ -578,8 +623,54 @@ const calData = computed(() => {
   let displayGap = Math.max(0, currentGapReal - simulatedIncome.value)
   let nextTargetTommorow = displayGap > 0 ? displayGap / Math.max(1, daysInMonth - upToDay) : 0
 
-  return { calendarData: calendarData.reverse(), displayGap, nextTargetTommorow, daysLeft: daysInMonth - upToDay, currentGapReal, isCurrentMonth }
+  return { calendarData, displayGap, nextTargetTommorow, daysLeft: daysInMonth - upToDay, currentGapReal, isCurrentMonth }
 })
+
+// 🌟 ตัวแปรใหม่สำหรับจัดตารางปฏิทิน 🌟
+const calendarGrid = computed(() => {
+  const year = viewDate.value.getFullYear()
+  const month = viewDate.value.getMonth()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const firstDay = new Date(year, month, 1).getDay() // 0 = อาทิตย์, 1 = จันทร์
+
+  const grid = []
+  // ใส่ช่องว่างก่อนวันที่ 1
+  for (let i = 0; i < firstDay; i++) {
+    grid.push({ empty: true })
+  }
+
+  // เอาข้อมูลจาก calData มาใส่ให้ตรงวัน
+  const dataMap = {}
+  calData.value.calendarData.forEach(d => { dataMap[d.day] = d })
+
+  // ใส่วันที่ทั้งหมดในเดือน
+  for (let i = 1; i <= daysInMonth; i++) {
+    grid.push({
+      empty: false,
+      day: i,
+      data: dataMap[i] || null, // ถ้าเป็นอนาคต จะเป็น null
+      isToday: i === currentDate.getDate() && month === currentDate.getMonth() && year === currentDate.getFullYear()
+    })
+  }
+  return grid
+})
+
+// ดูข้อมูลเมื่อคลิกวันที่ในปฏิทิน
+const openDayInfo = (dayObj) => {
+  if (!dayObj.empty) selectedDayInfo.value = dayObj
+}
+
+// เลือกล้างข้อมูลวันที่เวลาเปลี่ยนเดือน
+watch(viewDate, () => {
+  selectedDayInfo.value = null
+})
+// ออโต้เลือก "วันนี้" ถ้าเปิดมาหน้าปฏิทิน
+watch(calendarGrid, (newGrid) => {
+  if (!selectedDayInfo.value) {
+    const todayNode = newGrid.find(d => d.isToday)
+    if (todayNode) selectedDayInfo.value = todayNode
+  }
+}, { immediate: true })
 
 // Summary
 const daysDivisor = computed(() => {
@@ -640,6 +731,12 @@ const fetchMonthData = async () => {
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
+    
+    // อัปเดตตารางปฏิทิน
+    if (!selectedDayInfo.value) {
+      const todayNode = calendarGrid.value.find(d => d.isToday)
+      if (todayNode) selectedDayInfo.value = todayNode
+    }
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
   } finally {
@@ -717,20 +814,12 @@ onMounted(() => {
 <style>
 /* 🌟 พระเอกของเรา: CSS สำหรับ Animation โคตรสมูท 🌟 */
 
-/* 1. เอฟเฟกต์ตอนกดเปลี่ยนแท็บเมนู (Fade + Slide นิดๆ) */
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-.fade-enter-from {
-  opacity: 0;
-  transform: translateY(10px) scale(0.98);
-}
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-10px) scale(0.98);
-}
+.fade-enter-from { opacity: 0; transform: translateY(10px) scale(0.98); }
+.fade-leave-to { opacity: 0; transform: translateY(-10px) scale(0.98); }
 
-/* 2. เอฟเฟกต์หน้าต่าง Modal (เด้งจากด้านล่าง) */
 .slide-up-enter-active {
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
 }
@@ -738,20 +827,16 @@ onMounted(() => {
   transition: transform 0.3s cubic-bezier(0.5, 0, 0.9, 0.5), opacity 0.3s ease;
 }
 .slide-up-enter-from, .slide-up-leave-to {
-  transform: translateY(100%);
-  opacity: 0.5;
+  transform: translateY(100%); opacity: 0.5;
 }
 
-/* 3. เอฟเฟกต์แจ้งเตือน (Toast) */
 .toast-enter-active, .toast-leave-active {
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .toast-enter-from, .toast-leave-to {
-  opacity: 0;
-  transform: translate(-50%, -20px) scale(0.8);
+  opacity: 0; transform: translate(-50%, -20px) scale(0.8);
 }
 
-/* ซ่อน Scrollbar ของเมนูแนวนอนในหน้า Form */
 .hide-scrollbar::-webkit-scrollbar { display: none; }
 .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 </style>

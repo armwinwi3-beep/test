@@ -400,7 +400,7 @@
 import { ref, computed, onMounted } from 'vue'
 
 // เปลี่ยนจาก 'http://127.0.0.1:8080' เป็น:
-const API_BASE_URL = 'https://my-line-bot.onrender.com'
+const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
 
 // State
 const currentTab = ref('home')

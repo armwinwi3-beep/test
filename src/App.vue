@@ -868,7 +868,7 @@ onMounted(async () => {
   try {
     // 1. เช็คก่อนว่ารันอยู่ในแอป LINE หรือเบราว์เซอร์ปกติ
     if (window.liff) { 
-      await liff.init({ liffId: 'YOUR_LIFF_ID' })
+      await liff.init({ liffId: '2010880429-sx53ElMd' })
       if (!liff.isLoggedIn()) {
         liff.login()
       } else {

@@ -546,13 +546,13 @@ const formIconColor = computed(() => {
 
 // Home: Grouped Records
 // ฟังก์ชันจัดกลุ่มรายการตามวัน (แก้ทั้งปัญหาวันที่แตก และปัญหา ID ยาว)
+// ในฟังก์ชัน groupedRecords ของ src/App.vue
 const groupedRecords = computed(() => {
   const groups = {}
   
   records.value.forEach(item => {
     if (!item.date) return
     
-    // แปลงวันที่เพื่อจัดกลุ่ม
     const parts = item.date.split('/')
     const day = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10)
@@ -562,10 +562,10 @@ const groupedRecords = computed(() => {
     if (!groups[standardDateKey]) {
       groups[standardDateKey] = {
         date: standardDateKey,
-        dayNumber: day, // <--- ต้องมีบรรทัดนี้ ตัวเลขวันที่ถึงจะแสดงผลที่หน้าจอครับ!
-        items: [],
-        dayExpense: 0,
-        dayIncome: 0
+        day: day,          // <--- เปลี่ยนจาก dayNumber เป็น day ให้ตรงกับ template ครับ!
+        expense: 0,        // (เช็คชื่อตัวแปรยอดรวมรายจ่าย/รายรับให้ตรงกับ template ด้วยนะครับ)
+        income: 0,
+        items: []
       }
     }
 
@@ -573,13 +573,13 @@ const groupedRecords = computed(() => {
 
     const amt = parseFloat(item.amount) || 0
     if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') {
-      groups[standardDateKey].dayExpense += amt
+      groups[standardDateKey].expense += amt
     } else if (item.type === 'รายรับ') {
-      groups[standardDateKey].dayIncome += amt
+      groups[standardDateKey].income += amt
     }
   })
 
-  return Object.values(groups).sort((a, b) => b.dayNumber - a.dayNumber)
+  return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 
 // Debtors

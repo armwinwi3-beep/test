@@ -805,19 +805,24 @@ const fetchMonthData = async () => {
   }
 }
 const deleteRecord = async (item) => {
-  if (!confirm(`⚠️ ต้องการลบรายการ "${item.category}" ใช่ไหมครับ?`)) return
-  showToast("🗑️ กำลังลบข้อมูลหลังบ้าน...")
+  // เปลี่ยนจาก confirm() แบบเดิม มาเป็น Notification สวยๆ หรือลบแล้วแจ้งเตือนผ่าน Toast
+  showToast("🗑️ กำลังลบข้อมูล...")
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
-      // เปลี่ยนจาก 'admin' เป็น userId.value ตัวจริง
       body: JSON.stringify({ id: item.id, user_id: userId.value }) 
     })
     const data = await res.json()
-    if (data.status === 'success') { showToast("✅ ลบสำเร็จ"); fetchMonthData() }
-    else showToast('❌ ' + data.message, true)
-  } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
+    if (data.status === 'success') { 
+      showToast("✅ ลบรายการเรียบร้อย") 
+      fetchMonthData() 
+    } else {
+      showToast('❌ ' + data.message, true)
+    }
+  } catch (e) { 
+    showToast('❌ ขาดการเชื่อมต่อ', true) 
+  }
 }
 const openForm = (type) => {
   formType.value = type
@@ -879,22 +884,15 @@ onMounted(async () => {
     await liff.init({ liffId: '2010880429-sx53ElMd' })
     
     if (!liff.isLoggedIn()) {
-      alert('⚠️ ยังไม่ได้ล็อกอิน LINE กำลังพาไปล็อกอิน...')
       liff.login()
       return
     }
 
     const profile = await liff.getProfile()
     userId.value = profile.userId
-    
-    // 💡 เด้งโชว์ไอดีไลน์จริงบนมือถือเลย เพื่อพิสูจน์ว่ามันดึงมาได้แล้ว!
-    alert('✅ ดึงไอดีสำเร็จ: ' + userId.value)
-
   } catch (error) {
-  // แก้ไขข้อความ alert ให้ปลอดภัย ไม่เรียกตัวแปรผิด
-  alert('❌ Error Detail: ' + (error.message || JSON.stringify(error)))
-  userId.value = 'admin'
-}
+    userId.value = 'admin'
+  }
 
   fetchMonthData()
 })

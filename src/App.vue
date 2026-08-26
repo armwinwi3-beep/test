@@ -506,6 +506,42 @@
     </div>
   </div>
 </div>
+<!-- ปุ่มเปิดหน้าใส่ PIN สำหรับเข้าโหมด Admin บนเว็บ -->
+<button @click="openAdminMode" class="fixed top-3 right-3 z-40 bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
+  <span>🔐</span> โหมดแอดมิน
+</button>
+<!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
+<div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl">
+    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+      🔐
+    </div>
+    <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
+    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ (0000)</p>
+
+    <!-- ช่องกรอก PIN 4 ช่อง -->
+    <div class="flex justify-center gap-3 mb-6">
+      <input 
+        v-for="(digit, index) in enteredPin" 
+        :key="index"
+        type="password" 
+        maxlength="1" 
+        v-model="enteredPin[index]"
+        @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
+        class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
+      />
+    </div>
+
+    <div class="flex gap-2">
+      <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
+        ยกเลิก
+      </button>
+      <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
+        ยืนยัน
+      </button>
+    </div>
+  </div>
+</div>
 </template>
 
 <script setup>

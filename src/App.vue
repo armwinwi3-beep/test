@@ -287,7 +287,7 @@
       <div v-if="isSummaryOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between shadow-md relative z-10">
           <button @click="isSummaryOpen = false" class="text-slate-800 font-bold px-2 py-1 active:scale-90 transition-transform flex items-center gap-1">
-            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg กลับ
+            <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg กลับ>
           </button>
           <div class="font-bold text-lg text-slate-800">📊 สรุปพฤติกรรม</div>
           <div class="w-16"></div>

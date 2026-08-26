@@ -717,26 +717,35 @@ const changeMonth = (dir) => {
   fetchMonthData()
 }
 
+// ในฟังก์ชัน fetchMonthData ของ src/App.vue
 const fetchMonthData = async () => {
   isLoading.value = true
   const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
   const y = String(viewDate.value.getFullYear()).slice(-2)
   try {
-    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}`)
+    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=admin`)
     if (!res.ok) throw new Error()
     const data = await res.json()
-    records.value = data.records || []
+    
+    // ตรงจุดนี้สำคัญมาก! เช็คดูว่าเราได้ใส่ "id: row.id" เข้าไปหรือเปล่า:
+    records.value = (data.records || []).map(row => ({
+      id: row.id,             // <--- ต้องดึง id ตรงนี้มาจากหลังบ้าน
+      date: row.date,
+      time: row.time,
+      type: row.type,
+      amount: row.amount,
+      category: row.category,
+      account: row.account,
+      note: row.note,
+      status: row.status
+    }))
+    
     totalBalance.value = data.total_balance || 0
     totalExpense.value = data.total_expense || 0
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
     
-    // อัปเดตตารางปฏิทิน
-    if (!selectedDayInfo.value) {
-      const todayNode = calendarGrid.value.find(d => d.isToday)
-      if (todayNode) selectedDayInfo.value = todayNode
-    }
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
   } finally {

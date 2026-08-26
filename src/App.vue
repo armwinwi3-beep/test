@@ -552,24 +552,23 @@ const groupedRecords = computed(() => {
   records.value.forEach(item => {
     if (!item.date) return
     
-    // แปลงวันที่ให้อยู่ในมาตรฐานเดียวกัน (ตัดเลข 0 ที่อาจต่างกันออก เพื่อไม่ให้การ์ดแยกกัน)
+    // แปลงวันที่เพื่อจัดกลุ่ม
     const parts = item.date.split('/')
     const day = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10)
     const year = parts[2]
-    const standardDateKey = `${day}/${month}/${year}` // เช่น "26/8/2026" จะรวมเป็นการ์ดเดียวกันเสมอ
+    const standardDateKey = `${day}/${month}/${year}`
 
     if (!groups[standardDateKey]) {
       groups[standardDateKey] = {
         date: standardDateKey,
-        dayNumber: day,
+        dayNumber: day, // <--- ต้องมีบรรทัดนี้ ตัวเลขวันที่ถึงจะแสดงผลที่หน้าจอครับ!
         items: [],
         dayExpense: 0,
         dayIncome: 0
       }
     }
 
-    // สำคัญ: ต้องส่ง item.id ที่เป็นตัวเลขจากฐานข้อมูลต่อเข้าไปตรงๆ
     groups[standardDateKey].items.push(item)
 
     const amt = parseFloat(item.amount) || 0
@@ -580,7 +579,6 @@ const groupedRecords = computed(() => {
     }
   })
 
-  // เรียงลำดับจากวันที่ล่าสุดลงไป
   return Object.values(groups).sort((a, b) => b.dayNumber - a.dayNumber)
 })
 

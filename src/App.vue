@@ -189,48 +189,37 @@
           </Transition>
         </section>
 
-       <!-- 🤝 แท็บคนยืมเงิน -->
-<section v-else-if="currentTab === 'debtors'" key="debtors" class="p-4">
-  <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
-    🤝 คนยืมเงิน (ลูกหนี้)
-  </div>
-  
-  <div class="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-5 text-white text-center">
-    <div class="text-sm font-medium mb-1 opacity-90">ยอดเงินที่คนอื่นยืมไปรวม</div>
-    <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
-  </div>
+        <!-- 🤝 แท็บคนยืมเงิน -->
+        <section v-else-if="currentTab === 'debtors'" key="debtors" class="p-4">
+          <div class="text-center font-bold text-lg text-slate-800 bg-brand-yellow rounded-t-2xl py-3 -mt-4 -mx-4 mb-4 shadow-md">
+            🤝 คนยืมเงิน (ลูกหนี้)
+          </div>
+          <div class="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-5 text-white text-center">
+            <div class="text-sm font-medium mb-1 opacity-90">ยอดเงินที่คนอื่นยืมไปรวม</div>
+            <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
+          </div>
 
-  <button @click="openForm('debtor')" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(124,58,237,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
-    <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    จดให้ยืม / ได้คืน
-  </button>
-  
-  <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-12 flex flex-col items-center gap-2">
-    <span class="text-4xl">😇</span>
-    <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
-  </div>
-
-  <!-- 🌟 การแสดงผลการเปลี่ยนสีเมื่อคืนครบ 🌟 -->
-  <div v-else v-for="d in debtorsList" :key="d.name" 
-       class="bg-brand-card rounded-2xl p-4 mb-3 flex justify-between items-center border-l-4 shadow-sm hover:translate-x-1 transition-all"
-       :class="d.isCleared ? 'border-green-500 opacity-60' : 'border-violet-500'">
-    <div class="flex items-center gap-4">
-      <div class="p-2.5 rounded-xl text-xl" :class="d.isCleared ? 'bg-green-500/20 text-green-400' : 'bg-violet-500/20 text-violet-400'">
-        {{ d.isCleared ? '✅' : '👤' }}
-      </div>
-      <div>
-        <div class="font-bold text-base text-white">{{ d.name }}</div>
-        <div class="text-xs" :class="d.isCleared ? 'text-green-400 font-semibold' : 'text-slate-400'">
-          {{ d.isCleared ? 'คืนเงินครบเรียบร้อยแล้ว' : 'ยอดค้างชำระทั้งหมด' }}
-        </div>
-      </div>
-    </div>
-    
-    <div class="font-bold text-xl" :class="d.isCleared ? 'text-green-400' : 'text-yellow-400'">
-      {{ d.amount <= 0 ? '0 ฿' : `${d.amount.toLocaleString('th-TH')} ฿` }}
-    </div>
-  </div>
-</section>
+          <!-- 🌟 ปุ่มจดเพิ่มแบบใหม่ ดูน่ากดขึ้น 🌟 -->
+          <button @click="openForm('debtor')" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(124,58,237,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
+            <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+            จดให้ยืม / ได้คืน
+          </button>
+          
+          <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-12 flex flex-col items-center gap-2">
+            <span class="text-4xl">😇</span>
+            <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
+          </div>
+          <div v-else v-for="d in debtorsList" :key="d.name" class="bg-brand-card rounded-2xl p-4 mb-3 flex justify-between items-center border-l-4 border-violet-500 shadow-sm hover:translate-x-1 transition-transform">
+            <div class="flex items-center gap-4">
+              <div class="bg-violet-500/20 text-violet-400 p-2.5 rounded-xl text-xl">👤</div>
+              <div>
+                <div class="font-bold text-base text-white">{{ d.name }}</div>
+                <div class="text-xs text-slate-400">ยอดค้างชำระทั้งหมด</div>
+              </div>
+            </div>
+            <div class="text-yellow-400 font-bold text-xl">{{ d.amount.toLocaleString('th-TH') }} ฿</div>
+          </div>
+        </section>
 
         <!-- 📋 แท็บบิลรายเดือน -->
         <section v-else-if="currentTab === 'bills'" key="bills" class="p-4">
@@ -574,6 +563,8 @@ const isSummaryOpen = ref(false)
 const isLoading = ref(true)
 const userId = ref('admin')
 const records = ref([])
+const totalBalance = ref(0)
+const totalExpense = ref(0)
 const totalIncome = ref(0)
 const accountBalances = ref({})
 const debtorsData = ref({})
@@ -624,21 +615,7 @@ const openAdminMode = () => {
   enteredPin.value = ['', '', '', '']
   showPinModal.value = true
 }
-const totalBalance = computed(() => {
-  let balance = 0
-  records.value.forEach(r => {
-    const amt = Number(r.amount) || 0
-    // เพิ่มเงินเข้าบัญชี
-    if (r.type === 'รายรับ' || r.type === 'ได้คืนจากลูกหนี้') {
-      balance += amt
-    } 
-    // หักเงินออกจากบัญชี (บิลจะหักก็ต่อเมื่อสถานะเป็น 'จ่ายแล้ว' เท่านั้น)
-    else if (r.type === 'รายจ่าย' || r.type === 'ให้ยืมเงิน' || (r.type === 'บิล' && r.status === 'จ่ายแล้ว')) {
-      balance -= amt
-    }
-  })
-  return balance
-})
+
 const verifyPin = () => {
   const pinStr = enteredPin.value.join('')
   if (pinStr === correctPin) {
@@ -672,45 +649,7 @@ const isIncome = (t) => t === 'รายรับ' || t === 'ได้คืน�
 // Computed
 const monthDisplay = computed(() => `${thMonths[viewDate.value.getMonth()]} ${(viewDate.value.getFullYear() + 543).toString().slice(-2)}`)
 const formDateDisplay = computed(() => `📅 วัน${thDays[currentDate.getDay()]}ที่ ${currentDate.getDate()} ${thMonths[currentDate.getMonth()]} ${(currentDate.getFullYear() + 543).toString().slice(-2)}`)
-const totalExpense = computed(() => {
-  let total = 0
-  records.value.forEach(r => {
-    const amt = Number(r.amount) || 0
-    // นับเฉพาะ รายจ่ายปกติ, ให้ยืมเงิน, และบิลที่จ่ายแล้วเท่านั้น
-    if (r.type === 'รายจ่าย' || r.type === 'ให้ยืมเงิน' || (r.type === 'บิล' && r.status === 'จ่ายแล้ว')) {
-      total += amt
-    }
-  })
-  return total
-})
-const debtorsList = computed(() => {
-  const map = {}
 
-  records.value.forEach(r => {
-    if (r.type === 'ให้ยืมเงิน' || r.type === 'ได้คืนจากลูกหนี้') {
-      const name = r.category // ใช้ชื่อลูกหนี้จาก category
-      const amt = Number(r.amount) || 0
-      
-      if (!map[name]) {
-        map[name] = { name, borrowed: 0, repaid: 0 }
-      }
-
-      if (r.type === 'ให้ยืมเงิน') {
-        map[name].borrowed += amt
-      } else if (r.type === 'ได้คืนจากลูกหนี้') {
-        map[name].repaid += amt
-      }
-    }
-  })
-  return Object.values(map).map(d => {
-    const remaining = d.borrowed - d.repaid
-    return {
-      name: d.name,
-      amount: remaining,
-      isCleared: remaining <= 0 // เช็คสถานะว่าคืนครบแล้วหรือยัง
-    }
-  })
-})
 const formIcon = computed(() => {
   if (formType.value === 'expense') return '↑'
   if (formType.value === 'income') return '↓'
@@ -725,61 +664,7 @@ const formIconColor = computed(() => {
   if (formType.value === 'debtor') return 'text-violet-500'
   return 'text-orange-500'
 })
-const totalDebtors = computed(() => {
-  return debtorsList.value.reduce((sum, d) => {
-    return sum + (d.amount > 0 ? d.amount : 0)
-  }, 0)
-})
 
-// --- 3. จัดกลุ่มบิลค้างชำระและชำระแล้ว ---
-const billsData = computed(() => {
-  const unpaid = []
-  const paid = []
-  let totalPaid = 0
-  let totalUnpaid = 0
-
-  records.value.forEach(r => {
-    if (r.type === 'บิล' || r.category === 'บิล') {
-      const amt = Number(r.amount) || 0
-      if (r.status === 'จ่ายแล้ว') {
-        paid.push(r)
-        totalPaid += amt
-      } else {
-        unpaid.push(r)
-        totalUnpaid += amt
-      }
-    }
-  })
-
-  return { unpaid, paid, totalPaid, totalUnpaid }
-})
-
-// --- 4. ฟังก์ชันกดจ่ายบิล ---
-const payUnpaidBill = async (billItem) => {
-  try {
-    // ส่งคำสั่งอัปเดตไปที่ API หลังบ้าน (ที่อัปเดตไฟล์ app.py ไว้ก่อนหน้านี้)
-    const response = await fetch('/api/update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: billItem.id,
-        status: 'จ่ายแล้ว',
-        account: billItem.account || 'กสิกร' // บัญชีที่ใช้ตัดเงิน
-      })
-    })
-
-    const resData = await response.json()
-    if (resData.status === 'success') {
-      // อัปเดตข้อมูลในหน้าต่าง Frontend ทันที
-      billItem.status = 'จ่ายแล้ว'
-      showToast('ชำระบิลเรียบร้อยแล้ว!')
-    } else {
-      showToast('เกิดข้อผิดพลาดในการจ่ายบิล', true)
-    }
-  } catch (err) {
-    showToast('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', true)
-  }
-}
 const groupedRecords = computed(() => {
   const groups = {}
   
@@ -824,6 +709,9 @@ const groupedRecords = computed(() => {
   return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 
+// Debtors
+const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a,b) => a+b, 0))
+const debtorsList = computed(() => Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a,b) => b[1]-a[1]).map(d => ({name: d[0], amount: d[1]})))
 
 // Bills
 const billsData = computed(() => {

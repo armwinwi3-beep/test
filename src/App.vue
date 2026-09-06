@@ -502,7 +502,7 @@ const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
 const isAdminMode = ref(false)
 const showPinModal = ref(false)
 const enteredPin = ref(['', '', '', ''])
-const correctPin = 'aaaa' // รหัสผ่านแอดมินที่ตั้งไว้
+const correctPin = 'aaaa'
 
 const currentTab = ref('home')
 const isFormOpen = ref(false)
@@ -551,7 +551,6 @@ const verifyPin = () => {
     showPinModal.value = false
     isLocked.value = false
     isAdminMode.value = true
-
     userId.value = 'admin'
     fetchMonthData()
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
@@ -575,32 +574,12 @@ const showToast = (msg, error = false) => {
 }
 const isExpense = (t) => t.includes('รายจ่าย') || t === 'ให้ยืมเงิน'
 const isIncome = (t) => t === 'รายรับ' || t === 'ได้คืนจากลูกหนี้'
+const isUnpaidBill = (r) => r.type === 'รายจ่ายต้องชำระต่อเดือน' && r.status === 'ยังไม่จ่าย'
 
 // Computed
 const monthDisplay = computed(() => `${thMonths[viewDate.value.getMonth()]} ${(viewDate.value.getFullYear() + 543).toString().slice(-2)}`)
 const formDateDisplay = computed(() => `📅 วัน${thDays[currentDate.getDay()]}ที่ ${currentDate.getDate()} ${thMonths[currentDate.getMonth()]} ${(currentDate.getFullYear() + 543).toString().slice(-2)}`)
-// ❌ ลบของเดิม: const selectedDayInfo = ref(null)
 
-const selectedDay = ref(null)   // เก็บแค่ "เลขวัน"
-
-const selectedDayInfo = computed(() => {
-  if (!selectedDay.value) return null
-  return calendarGrid.value.find(d => !d.empty && d.day === selectedDay.value) || null
-})
-
-const openDayInfo = (dayObj) => {
-  if (!dayObj.empty) selectedDay.value = dayObj.day
-}
-
-// auto-select วันล่าสุดทันทีที่เข้าเดือน
-watch(viewDate, () => {
-  const t = new Date()
-  const sameMonth = viewDate.value.getMonth() === t.getMonth()
-                 && viewDate.value.getFullYear() === t.getFullYear()
-  selectedDay.value = sameMonth
-    ? t.getDate()
-    : new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-}, { immediate: true })
 const formIcon = computed(() => {
   if (formType.value === 'expense') return '↑'
   if (formType.value === 'income') return '↓'
@@ -616,103 +595,72 @@ const formIconColor = computed(() => {
   return 'text-orange-500'
 })
 
+// รายการที่ "นับจริง" เท่านั้น (ตัดบิลที่ยังไม่จ่ายออก)
+const effectiveRecords = computed(() => records.value.filter(r => !isUnpaidBill(r)))
+
 const groupedRecords = computed(() => {
   const groups = {}
-  
-  records.value.forEach(item => {
+  effectiveRecords.value.forEach(item => {
     if (!item.date) return
-    
-    // 🌟 เพิ่มบรรทัดนี้: ข้ามรายการที่เป็นบิลค้างชำระ ไม่ให้นำมาจัดกลุ่มในหน้าแรก
-    if (item.status === 'ยังไม่จ่าย') return
-
     const parts = item.date.split('/')
     const day = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10)
     const year = parts[2]
-    const standardDateKey = `${day}/${month}/${year}`
+    const key = `${day}/${month}/${year}`
 
-    if (!groups[standardDateKey]) {
-      groups[standardDateKey] = {
-        date: standardDateKey,
-        day: day,
-        expense: 0,
-        income: 0,
-        items: []
-      }
+    if (!groups[key]) {
+      groups[key] = { date: key, day, expense: 0, income: 0, items: [] }
     }
-
-    groups[standardDateKey].items.push(item)
+    groups[key].items.push(item)
 
     const amt = parseFloat(item.amount) || 0
-    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') {
-      groups[standardDateKey].expense += amt
-    } else if (item.type === 'รายรับ') {
-      groups[standardDateKey].income += amt
-    }
+    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') groups[key].expense += amt
+    else if (item.type === 'รายรับ') groups[key].income += amt
   })
 
-  Object.values(groups).forEach(group => {
-    group.items.sort((a, b) => {
-      return (b.time || '').localeCompare(a.time || '')
-    })
+  Object.values(groups).forEach(g => {
+    g.items.sort((a, b) => (b.time || '').localeCompare(a.time || ''))
   })
-
   return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 
 // Debtors
-const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a,b) => a+b, 0))
-const debtorsList = computed(() => Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a,b) => b[1]-a[1]).map(d => ({name: d[0], amount: d[1]})))
+const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a, b) => a + b, 0))
+const debtorsList = computed(() =>
+  Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a, b) => b[1] - a[1]).map(d => ({ name: d[0], amount: d[1] }))
+)
 
 // Bills
 const billsData = computed(() => {
-  const bills = records.value.filter(r => r.type === 'รายจ่ายต้องชำระต่อเดือน').reverse()
+  const bills = records.value.filter(r => r.type === 'รายจ่ายต้องชำระต่อเดือน').slice().reverse()
   const unpaid = bills.filter(b => b.status === 'ยังไม่จ่าย')
   const paid = bills.filter(b => b.status !== 'ยังไม่จ่าย')
-  const totalUnpaid = unpaid.reduce((sum, b) => sum + b.amount, 0)
-  const totalPaid = paid.reduce((sum, b) => sum + b.amount, 0)
-  
+  const totalUnpaid = unpaid.reduce((s, b) => s + b.amount, 0)
+  const totalPaid = paid.reduce((s, b) => s + b.amount, 0)
+
   const effectiveBalance = totalBalance.value + simulatedIncome.value
   const remainingToSave = totalUnpaid - effectiveBalance
-  
+
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-  const isCurrentMonth = (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
+  const isCurrentMonth = viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()
   const remainingDays = isCurrentMonth ? (daysInMonth - currentDate.getDate() + 1) : daysInMonth
   const dailySave = remainingToSave / Math.max(1, remainingDays)
 
   return { unpaid, paid, totalUnpaid, totalPaid, remainingToSave, dailySave }
 })
-const isUnpaidBill = (r) =>
-  r.type === 'รายจ่ายต้องชำระต่อเดือน' && r.status === 'ยังไม่จ่าย'
-const toggleBillStatus = (b) => {
-  const i = records.value.findIndex(r => r.id === b.id)
-  if (i === -1) return
-
-  const willPay = records.value[i].status === 'ยังไม่จ่าย'
-  const today = new Date().toISOString().slice(0, 10)
-
-  records.value[i] = {
-    ...records.value[i],
-    status: willPay ? 'จ่ายแล้ว' : 'ยังไม่จ่าย',
-    paidDate: willPay ? today : null
-  }
-  saveData()   // ชื่อฟังก์ชัน persist เดิมของคุณ
-}
-// รายการที่ "นับจริง" เท่านั้น
-const effectiveRecords = computed(() => records.value.filter(r => !isUnpaidBill(r)))
 
 // Calendar
 const calData = computed(() => {
-  const src = effectiveRecords.value 
+  const src = effectiveRecords.value
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-  const isCurrentMonth = (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
+  const isCurrentMonth = viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()
   const upToDay = isCurrentMonth ? currentDate.getDate() : daysInMonth
 
   let currentGapReal = billsData.value.totalUnpaid - totalBalance.value
   let dailyS = new Array(upToDay + 1).fill(0)
-  
-  records.value.forEach(r => {
-    if (r.status === 'ยังไม่จ่าย') return
+
+  src.forEach(r => {
+    if (!r.date) return
     let day = parseInt(r.date.split('/')[0])
     if (day >= 1 && day <= upToDay) {
       if (isIncome(r.type)) dailyS[day] += r.amount
@@ -720,7 +668,7 @@ const calData = computed(() => {
     }
   })
 
-  let sumS = dailyS.reduce((a,b) => a+b, 0)
+  let sumS = dailyS.reduce((a, b) => a + b, 0)
   let currentRunningGap = Math.max(0, currentGapReal + sumS)
   let calendarData = []
 
@@ -751,9 +699,7 @@ const calendarGrid = computed(() => {
   const firstDay = new Date(year, month, 1).getDay()
 
   const grid = []
-  for (let i = 0; i < firstDay; i++) {
-    grid.push({ empty: true })
-  }
+  for (let i = 0; i < firstDay; i++) grid.push({ empty: true })
 
   const dataMap = {}
   calData.value.calendarData.forEach(d => { dataMap[d.day] = d })
@@ -769,27 +715,34 @@ const calendarGrid = computed(() => {
   return grid
 })
 
-const openDayInfo = (dayObj) => {
-  if (!dayObj.empty) selectedDayInfo.value = dayObj
-}
+/* ===== วันที่เลือกในปฏิทิน (มีชุดเดียวเท่านั้น) ===== */
+const selectedDay = ref(null)
 
-watch(viewDate, () => {
-  selectedDayInfo.value = null
+const selectedDayInfo = computed(() => {
+  if (!selectedDay.value) return null
+  return calendarGrid.value.find(d => !d.empty && d.day === selectedDay.value) || null
 })
 
-watch(calendarGrid, (newGrid) => {
-  if (!selectedDayInfo.value) {
-    const todayNode = newGrid.find(d => d.isToday)
-    if (todayNode) selectedDayInfo.value = todayNode
-  }
+const openDayInfo = (dayObj) => {
+  if (!dayObj.empty) selectedDay.value = dayObj.day
+}
+
+// auto-select วันล่าสุดของเดือนที่กำลังดู
+watch(viewDate, () => {
+  const t = new Date()
+  const sameMonth = viewDate.value.getMonth() === t.getMonth() && viewDate.value.getFullYear() === t.getFullYear()
+  selectedDay.value = sameMonth
+    ? t.getDate()
+    : new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
 }, { immediate: true })
 
 // Summary
 const daysDivisor = computed(() => {
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-  return (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()) ? currentDate.getDate() : daysInMonth
+  return (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
+    ? currentDate.getDate() : daysInMonth
 })
-const totalGeneralExp = computed(() => records.value.filter(r => r.type === 'รายจ่าย').reduce((s,r) => s+r.amount, 0))
+const totalGeneralExp = computed(() => records.value.filter(r => r.type === 'รายจ่าย').reduce((s, r) => s + r.amount, 0))
 const avgDailyTotal = computed(() => totalExpense.value / Math.max(1, daysDivisor.value))
 const avgDailyGeneral = computed(() => totalGeneralExp.value / Math.max(1, daysDivisor.value))
 const maxVal = computed(() => Math.max(totalIncome.value, totalExpense.value))
@@ -798,24 +751,29 @@ const expWidth = computed(() => maxVal.value > 0 ? (totalExpense.value / maxVal.
 
 const sortedCategories = computed(() => {
   let catMap = {}
-  records.value.forEach(r => {
-    if (r.status !== 'ยังไม่จ่าย' && isExpense(r.type)) {
+  effectiveRecords.value.forEach(r => {
+    if (isExpense(r.type)) {
       let c = r.category || 'ไม่ระบุ'
       catMap[c] = (catMap[c] || 0) + r.amount
     }
   })
-  return Object.entries(catMap).sort((a,b) => b[1]-a[1]).map(c => {
-    let div = ['ShopeePay', 'SEasyCash', 'SPayExtra', 'Internet', 'ค่าทำฟัน', 'ประกันสังคม', 'บิลอื่นๆ'].includes(c[0]) ? new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate() : daysDivisor.value
-    return { name: c[0], amount: c[1], percent: Math.round((c[1]/totalExpense.value)*100), avg: c[1]/Math.max(1, div) }
+  return Object.entries(catMap).sort((a, b) => b[1] - a[1]).map(c => {
+    let div = ['ShopeePay', 'SEasyCash', 'SPayExtra', 'Internet', 'ค่าทำฟัน', 'ประกันสังคม', 'บิลอื่นๆ'].includes(c[0])
+      ? new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
+      : daysDivisor.value
+    return { name: c[0], amount: c[1], percent: Math.round((c[1] / totalExpense.value) * 100), avg: c[1] / Math.max(1, div) }
   })
 })
 
 const insightText = computed(() => {
   if (totalGeneralExp.value === 0) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ ดีเยี่ยมมากๆ! 🎉`
   const top = sortedCategories.value[0]
+  if (!top) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ 🎉`
   let txt = `คุณหมดเงินไปกับ <b>${top.name}</b> เยอะที่สุด คิดเป็น <b>${top.percent}%</b> ของรายจ่ายทั้งหมด`
-  if (totalIncome.value > 0 && totalExpense.value > totalIncome.value) txt += `<br><span class="text-red-400 mt-1 inline-block">⚠️ ระวัง: เดือนนี้ใช้จ่ายเกินรายรับไปแล้วนะ!</span>`
-  else if (totalIncome.value > 0 && totalExpense.value <= totalIncome.value * 0.5) txt += `<br><span class="text-green-400 mt-1 inline-block">✨ ยอดเยี่ยม: ใช้เงินไม่ถึงครึ่งของรายรับ มีเงินเก็บแน่นอน!</span>`
+  if (totalIncome.value > 0 && totalExpense.value > totalIncome.value)
+    txt += `<br><span class="text-red-400 mt-1 inline-block">⚠️ ระวัง: เดือนนี้ใช้จ่ายเกินรายรับไปแล้วนะ!</span>`
+  else if (totalIncome.value > 0 && totalExpense.value <= totalIncome.value * 0.5)
+    txt += `<br><span class="text-green-400 mt-1 inline-block">✨ ยอดเยี่ยม: ใช้เงินไม่ถึงครึ่งของรายรับ มีเงินเก็บแน่นอน!</span>`
   return txt
 })
 
@@ -835,22 +793,16 @@ const fetchMonthData = async () => {
   isLoading.value = true
   const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
   const y = String(viewDate.value.getFullYear()).slice(-2)
-  
+
   try {
     const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${activeUserId}`)
     if (!res.ok) throw new Error()
     const data = await res.json()
 
     records.value = (data.records || []).map(row => ({
-      id: row.id,
-      date: row.date,
-      time: row.time,
-      type: row.type,
-      amount: row.amount,
-      category: row.category,
-      account: row.account,
-      note: row.note,
-      status: row.status
+      id: row.id, date: row.date, time: row.time, type: row.type,
+      amount: row.amount, category: row.category, account: row.account,
+      note: row.note, status: row.status
     }))
 
     totalBalance.value = data.total_balance || 0
@@ -858,7 +810,6 @@ const fetchMonthData = async () => {
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
-
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
   } finally {
@@ -866,23 +817,47 @@ const fetchMonthData = async () => {
   }
 }
 
+// 🔴 ต้องมี endpoint /api/update-status ฝั่ง backend ก่อน (ดูหมายเหตุด้านล่าง)
+const toggleBillStatus = async (b) => {
+  const i = records.value.findIndex(r => r.id === b.id)
+  if (i === -1) return
+
+  const willPay = records.value[i].status === 'ยังไม่จ่าย'
+  const newStatus = willPay ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'
+  const prevStatus = records.value[i].status
+
+  // optimistic update — เห็นผลทันทีไม่ต้องรอเซิร์ฟเวอร์
+  records.value[i] = { ...records.value[i], status: newStatus }
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/update-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: b.id, status: newStatus, user_id: userId.value })
+    })
+    const data = await res.json()
+    if (data.status !== 'success') throw new Error(data.message)
+    showToast(willPay ? '✅ บันทึกว่าจ่ายแล้ว' : '↩️ ย้อนกลับเป็นยังไม่จ่าย')
+    fetchMonthData()
+  } catch (e) {
+    records.value[i] = { ...records.value[i], status: prevStatus } // rollback
+    showToast('❌ อัปเดตสถานะไม่สำเร็จ', true)
+  }
+}
+
 const deleteRecord = async (item) => {
   showToast("🗑️ กำลังลบข้อมูล...")
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
-      method: 'POST', 
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: item.id, user_id: userId.value }) 
+      body: JSON.stringify({ id: item.id, user_id: userId.value })
     })
     const data = await res.json()
-    if (data.status === 'success') { 
-      showToast("✅ ลบรายการเรียบร้อย") 
-      fetchMonthData() 
-    } else {
-      showToast('❌ ' + data.message, true)
-    }
-  } catch (e) { 
-    showToast('❌ ขาดการเชื่อมต่อ', true) 
+    if (data.status === 'success') { showToast("✅ ลบรายการเรียบร้อย"); fetchMonthData() }
+    else showToast('❌ ' + data.message, true)
+  } catch (e) {
+    showToast('❌ ขาดการเชื่อมต่อ', true)
   }
 }
 
@@ -902,27 +877,27 @@ const payUnpaidBill = (b) => {
 
 const saveRecord = async () => {
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
-  
-  let payload = { 
-    type: formType.value, 
-    amount: formAmount.value, 
+
+  let payload = {
+    type: formType.value,
+    amount: formAmount.value,
     note: formNote.value || '-',
-    user_id: userId.value 
+    user_id: userId.value
   }
 
   if (formType.value === 'transfer') {
-    if(!formSourceAcc.value || !formDestAcc.value) return alert("⚠️ กรุณาเลือกบัญชีต้นทางและปลายทางให้ครบ!")
-    if(formSourceAcc.value === formDestAcc.value) return alert("⚠️ บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน!")
+    if (!formSourceAcc.value || !formDestAcc.value) return alert("⚠️ กรุณาเลือกบัญชีต้นทางและปลายทางให้ครบ!")
+    if (formSourceAcc.value === formDestAcc.value) return alert("⚠️ บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน!")
     payload.sourceAccount = formSourceAcc.value; payload.destinationAccount = formDestAcc.value
   } else if (formType.value === 'debtor') {
-    if(!formDebtorName.value.trim()) return alert("⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
-    if(!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
+    if (!formDebtorName.value.trim()) return alert("⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
+    if (!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     payload.type = formDebtorAction.value
     payload.category = formDebtorName.value.trim()
     payload.account = formAccount.value; payload.status = "-"
   } else {
-    if(!formCategory.value) return alert("⚠️ กรุณาเลือกหมวดหมู่ด้วยครับ!")
-    if((formType.value !== 'bill' || formBillStatus.value === 'จ่ายแล้ว') && !formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
+    if (!formCategory.value) return alert("⚠️ กรุณาเลือกหมวดหมู่ด้วยครับ!")
+    if ((formType.value !== 'bill' || formBillStatus.value === 'จ่ายแล้ว') && !formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     payload.category = formCategory.value
     payload.account = formAccount.value || '-'
     payload.status = formType.value === 'bill' ? formBillStatus.value : '-'
@@ -943,12 +918,9 @@ const saveRecord = async () => {
 onMounted(async () => {
   try {
     await liff.init({ liffId: LIFF_ID })
-    
+
     if (liff.isInClient()) {
-      if (!liff.isLoggedIn()) {
-        liff.login()
-        return
-      }
+      if (!liff.isLoggedIn()) { liff.login(); return }
       const profile = await liff.getProfile()
       userId.value = profile.userId
       savedLineUserId.value = profile.userId

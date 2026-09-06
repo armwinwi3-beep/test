@@ -410,7 +410,13 @@
               </select>
             </div>
             <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
-              <input type="text" v-model="formDebtorName" placeholder="พิมพ์ชื่อคนยืม (เช่น นัท)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
+              <select v-if="formDebtorAction === 'repay'" v-model="formDebtorName" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
+                <option value="" disabled selected>👤 เลือกคนที่คืนเงิน</option>
+                <option v-for="d in debtorsList" :key="d.name" :value="d.name">
+                  {{ d.name }} (ยอดค้าง {{ d.amount.toLocaleString('th-TH') }} ฿)
+                </option>
+              </select>
+              <input v-else type="text" v-model="formDebtorName" placeholder="พิมพ์ชื่อคนยืม (เช่น นัท)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
             </div>
             <div v-else class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-model="formCategory" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
@@ -897,7 +903,9 @@ const saveRecord = async () => {
     if(formSourceAcc.value === formDestAcc.value) return alert("⚠️ บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน!")
     payload.sourceAccount = formSourceAcc.value; payload.destinationAccount = formDestAcc.value
   } else if (formType.value === 'debtor') {
-    if(!formDebtorName.value.trim()) return alert("⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
+    if(!formDebtorName.value.trim()) {
+      return alert(formDebtorAction.value === 'repay' ? "⚠️ กรุณาเลือกคนที่คืนเงินด้วยครับ!" : "⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
+    }
     if(!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     payload.type = formDebtorAction.value === 'lend' ? 'ให้ยืมเงิน' : 'ได้คืนจากลูกหนี้'
     payload.category = formDebtorName.value.trim()

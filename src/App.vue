@@ -149,7 +149,7 @@
             </div>
           </div>
 
-          <!-- รายละเอียดของวันที่เลือก (คลิกจากตาราง) -->
+          <!-- รายรายละเอียดของวันที่เลือก -->
           <Transition name="fade" mode="out-in">
             <div v-if="selectedDayInfo && !selectedDayInfo.empty" :key="selectedDayInfo.day" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 shadow-lg border-2 transition-all duration-300 relative overflow-hidden"
                  :class="selectedDayInfo.data ? (selectedDayInfo.data.diff >= 0 || (selectedDayInfo.data.target===0 && selectedDayInfo.data.actual===0) ? 'border-green-500/50' : 'border-red-500/50') : 'border-slate-700/50'">
@@ -199,7 +199,6 @@
             <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
           </div>
 
-          <!-- 🌟 ปุ่มจดเพิ่มแบบใหม่ ดูน่ากดขึ้น 🌟 -->
           <button @click="openForm('debtor')" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(124,58,237,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
             <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             จดให้ยืม / ได้คืน
@@ -231,7 +230,6 @@
             <div class="text-4xl font-black tracking-tight">{{ billsData.totalPaid.toLocaleString('th-TH') }} ฿</div>
           </div>
 
-          <!-- 🌟 ปุ่มจดบิลแบบใหม่ ดูน่ากดขึ้น 🌟 -->
           <button @click="openForm('bill')" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
             <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             จดบิลเพิ่ม
@@ -282,7 +280,7 @@
       </Transition>
     </main>
 
-    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up (คงเดิม) -->
+    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up -->
     <Transition name="slide-up">
       <div v-if="isSummaryOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between shadow-md relative z-10">
@@ -348,7 +346,7 @@
       </div>
     </Transition>
 
-    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up (คงเดิม) -->
+    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up -->
     <Transition name="slide-up">
       <div v-if="isFormOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow pt-safe shadow-md relative z-10">
@@ -438,7 +436,7 @@
       </div>
     </Transition>
 
-    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล 🌟 -->
+    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล -->
     <Transition name="fade">
       <div v-if="!isFormOpen && !isSummaryOpen && (currentTab === 'home' || currentTab === 'calendar')" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">
         <button @click="openForm('expense')" class="pointer-events-auto bg-brand-blue text-white px-7 py-3.5 rounded-full font-bold shadow-[0_8px_30px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-blue-500 active:scale-90 transition-all hover:-translate-y-1">
@@ -474,74 +472,47 @@
       </nav>
     </Transition>
   </div>
+
+  <!-- ปุ่มเปิดโหมด Admin / ออกจากแอดมิน -->
+  <button v-if="!isAdminMode" @click="openAdminMode" class="fixed top-3 right-3 z-40 bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
+    <span>🔐</span> โหมดแอดมิน
+  </button>
+  <button v-else @click="exitAdminMode" class="fixed top-3 right-3 z-40 bg-red-900/80 hover:bg-red-800 text-white border border-red-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
+    <span>🔓</span> ออกจากแอดมิน
+  </button>
+
   <!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
-<div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl animate-fade-in">
-    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
-      🔐
-    </div>
-    <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
-    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ</p>
+  <div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl">
+      <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+        🔐
+      </div>
+      <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
+      <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ</p>
 
-    <!-- ช่องกรอก PIN 4 ช่อง -->
-    <div class="flex justify-center gap-3 mb-6">
-      <input 
-        v-for="(digit, index) in enteredPin" 
-        :key="index"
-        type="password" 
-        maxlength="1" 
-        v-model="enteredPin[index]"
-        @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
-        class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
-      />
-    </div>
+      <!-- ช่องกรอก PIN 4 ช่อง -->
+      <div class="flex justify-center gap-3 mb-6">
+        <input 
+          v-for="(digit, index) in enteredPin" 
+          :key="index"
+          type="password" 
+          maxlength="1" 
+          v-model="enteredPin[index]"
+          @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
+          class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
+        />
+      </div>
 
-    <div class="flex gap-2">
-      <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
-        ยกเลิก
-      </button>
-      <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
-        ยืนยัน
-      </button>
+      <div class="flex gap-2">
+        <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
+          ยกเลิก
+        </button>
+        <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
+          ยืนยัน
+        </button>
+      </div>
     </div>
   </div>
-</div>
-<!-- ปุ่มเปิดหน้าใส่ PIN สำหรับเข้าโหมด Admin บนเว็บ -->
-<button @click="openAdminMode" class="fixed top-3 right-3 z-40 bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
-  <span>🔐</span> โหมดแอดมิน
-</button>
-<!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
-<div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-  <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl">
-    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
-      🔐
-    </div>
-    <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
-    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ (0000)</p>
-
-    <!-- ช่องกรอก PIN 4 ช่อง -->
-    <div class="flex justify-center gap-3 mb-6">
-      <input 
-        v-for="(digit, index) in enteredPin" 
-        :key="index"
-        type="password" 
-        maxlength="1" 
-        v-model="enteredPin[index]"
-        @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
-        class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
-      />
-    </div>
-
-    <div class="flex gap-2">
-      <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
-        ยกเลิก
-      </button>
-      <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
-        ยืนยัน
-      </button>
-    </div>
-  </div>
-</div>
 </template>
 
 <script setup>
@@ -549,19 +520,21 @@ import { ref, computed, onMounted, watch } from 'vue'
 import liff from '@line/liff'
 
 const LIFF_ID = '2010880429-sx53ElMd'
-const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com' // <-- (อย่าลืมแก้เป็นลิงก์ Render ของคุณเหมือนเดิมนะครับ)
+const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
 
 // State
-// Admin PIN State
-const isAdminMode = ref(false) // เช็คว่ากำลังอยู่ในโหมดแอดมินหรือยัง
-const showPinModal = ref(false) // ควบคุมการแสดงกล่องกรอก PIN
-const enteredPin = ref(['', '', '', '']) // เก็บตัวเลข 4 ช่อง
+const isAdminMode = ref(false)
+const showPinModal = ref(false)
+const enteredPin = ref(['', '', '', ''])
 const correctPin = 'aaaa' // รหัสผ่านแอดมินที่ตั้งไว้
+
 const currentTab = ref('home')
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
 const isLoading = ref(true)
 const userId = ref('admin')
+const savedLineUserId = ref('')
+
 const records = ref([])
 const totalBalance = ref(0)
 const totalExpense = ref(0)
@@ -570,7 +543,7 @@ const accountBalances = ref({})
 const debtorsData = ref({})
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
-const selectedDayInfo = ref(null) // สำหรับเก็บข้อมูลวันที่กดดูในปฏิทิน
+const selectedDayInfo = ref(null)
 const isLocked = ref(false)
 const viewDate = ref(new Date())
 const currentDate = new Date()
@@ -592,25 +565,6 @@ const formDestAcc = ref('')
 const formDebtorAction = ref('lend')
 const formDebtorName = ref('')
 
-const initLiff = async () => {
-  try {
-    await liff.init({ liffId: LIFF_ID })
-    if (!liff.isLoggedIn()) {
-      liff.login() // ถ้ายังไม่ล็อกอิน LINE ระบบจะพาไปล็อกอินอัตโนมัติ
-    } else {
-      const profile = await liff.getProfile()
-      const lineUserId = profile.userId // ได้ LINE User ID มาแล้ว!
-      
-      // นำ lineUserId ไปใช้ดึงข้อมูลเฉพาะของเจ้านั้นๆ แทนคำว่า 'admin' เดิม
-      currentUserId.value = lineUserId 
-      fetchMonthData() 
-    }
-  } catch (error) {
-    console.error('LIFF Initialization failed: ', error)
-    // กรณีรันบนคอมพิวเตอร์ทั่วไป (ไม่ได้เปิดผ่าน LINE) ให้ fallback ใช้ 'admin' ตามเดิมได้เลยครับ
-    fetchMonthData()
-  }
-}
 const openAdminMode = () => {
   enteredPin.value = ['', '', '', '']
   showPinModal.value = true
@@ -623,7 +577,7 @@ const verifyPin = () => {
     isLocked.value = false
     isAdminMode.value = true
 
-    userId.value = 'admin' // บังคับสลับไปใช้กระเป๋า admin
+    userId.value = 'admin'
     fetchMonthData()
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
   } else {
@@ -634,10 +588,11 @@ const verifyPin = () => {
 
 const exitAdminMode = () => {
   isAdminMode.value = false
-  // คืนค่ากลับเป็น LINE User ID ของผู้ใช้ปัจจุบัน
-  // (ถ้ามีฟังก์ชันดึงไอดีไลน์เดิมเก็บไว้ สามารถเรียกใช้งานใหม่ได้ที่นี่ครับ)
+  userId.value = savedLineUserId.value || 'admin'
+  fetchMonthData()
   showToast('🔒 ออกจากโหมดแอดมินแล้ว')
 }
+
 // Helpers
 const showToast = (msg, error = false) => {
   toastMsg.value = msg; isError.value = error
@@ -697,15 +652,12 @@ const groupedRecords = computed(() => {
     }
   })
 
-  // 🔽 เพิ่มโค้ดตรงนี้ครับ เพื่อเรียงเวลาข้างในแต่ละวันให้รายการล่าสุดขึ้นก่อน
   Object.values(groups).forEach(group => {
     group.items.sort((a, b) => {
-      // เทียบเวลา string เช่น "19:55:00" กับ "08:51:00" (เรียงจากมากไปน้อย)
       return (b.time || '').localeCompare(a.time || '')
     })
   })
 
-  // เรียงลำดับการ์ดวันจากวันล่าสุดลงไป
   return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 
@@ -774,45 +726,39 @@ const calData = computed(() => {
   return { calendarData, displayGap, nextTargetTommorow, daysLeft: daysInMonth - upToDay, currentGapReal, isCurrentMonth }
 })
 
-// 🌟 ตัวแปรใหม่สำหรับจัดตารางปฏิทิน 🌟
 const calendarGrid = computed(() => {
   const year = viewDate.value.getFullYear()
   const month = viewDate.value.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDay = new Date(year, month, 1).getDay() // 0 = อาทิตย์, 1 = จันทร์
+  const firstDay = new Date(year, month, 1).getDay()
 
   const grid = []
-  // ใส่ช่องว่างก่อนวันที่ 1
   for (let i = 0; i < firstDay; i++) {
     grid.push({ empty: true })
   }
 
-  // เอาข้อมูลจาก calData มาใส่ให้ตรงวัน
   const dataMap = {}
   calData.value.calendarData.forEach(d => { dataMap[d.day] = d })
 
-  // ใส่วันที่ทั้งหมดในเดือน
   for (let i = 1; i <= daysInMonth; i++) {
     grid.push({
       empty: false,
       day: i,
-      data: dataMap[i] || null, // ถ้าเป็นอนาคต จะเป็น null
+      data: dataMap[i] || null,
       isToday: i === currentDate.getDate() && month === currentDate.getMonth() && year === currentDate.getFullYear()
     })
   }
   return grid
 })
 
-// ดูข้อมูลเมื่อคลิกวันที่ในปฏิทิน
 const openDayInfo = (dayObj) => {
   if (!dayObj.empty) selectedDayInfo.value = dayObj
 }
 
-// เลือกล้างข้อมูลวันที่เวลาเปลี่ยนเดือน
 watch(viewDate, () => {
   selectedDayInfo.value = null
 })
-// ออโต้เลือก "วันนี้" ถ้าเปิดมาหน้าปฏิทิน
+
 watch(calendarGrid, (newGrid) => {
   if (!selectedDayInfo.value) {
     const todayNode = newGrid.find(d => d.isToday)
@@ -845,6 +791,7 @@ const sortedCategories = computed(() => {
     return { name: c[0], amount: c[1], percent: Math.round((c[1]/totalExpense.value)*100), avg: c[1]/Math.max(1, div) }
   })
 })
+
 const insightText = computed(() => {
   if (totalGeneralExp.value === 0) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ ดีเยี่ยมมากๆ! 🎉`
   const top = sortedCategories.value[0]
@@ -865,18 +812,14 @@ const changeMonth = (dir) => {
   fetchMonthData()
 }
 
-// ในฟังก์ชัน fetchMonthData ของ src/App.vue
 const fetchMonthData = async () => {
-  // 💡 ป้องกันไม่ให้ส่งค่าว่าง: ถ้ายังไม่มี user_id ให้ใช้ 'admin' สำรองไว้ก่อน
-  const currentUserId = userId.value ? userId.value : 'admin'
-
+  const activeUserId = userId.value || 'admin'
   isLoading.value = true
   const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
   const y = String(viewDate.value.getFullYear()).slice(-2)
   
   try {
-    // ใช้ตัวแปร currentUserId ที่ปลอดภัยแล้วแทน
-    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${currentUserId}`)
+    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${activeUserId}`)
     if (!res.ok) throw new Error()
     const data = await res.json()
 
@@ -904,8 +847,8 @@ const fetchMonthData = async () => {
     isLoading.value = false
   }
 }
+
 const deleteRecord = async (item) => {
-  // เปลี่ยนจาก confirm() แบบเดิม มาเป็น Notification สวยๆ หรือลบแล้วแจ้งเตือนผ่าน Toast
   showToast("🗑️ กำลังลบข้อมูล...")
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
@@ -924,6 +867,7 @@ const deleteRecord = async (item) => {
     showToast('❌ ขาดการเชื่อมต่อ', true) 
   }
 }
+
 const openForm = (type) => {
   formType.value = type
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''
@@ -941,7 +885,6 @@ const payUnpaidBill = (b) => {
 const saveRecord = async () => {
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
   
-  // 💡 แนบ user_id ไปกับข้อมูลที่บันทึกทุกครั้ง
   let payload = { 
     type: formType.value, 
     amount: formAmount.value, 
@@ -981,26 +924,24 @@ const saveRecord = async () => {
 
 onMounted(async () => {
   try {
-    await liff.init({ liffId: '2010880429-sx53ElMd' })
+    await liff.init({ liffId: LIFF_ID })
     
-    // เช็คว่าเปิดผ่านแอป LINE บนมือถือจริงไหม
     if (liff.isInClient()) {
       if (!liff.isLoggedIn()) {
         liff.login()
         return
       }
       const profile = await liff.getProfile()
-      userId.value = profile.userId // ใช้ไอดีไลน์จริง
-      fetchMonthData() // ดึงข้อมูลเลย ไม่ต้องใส่รหัส
+      userId.value = profile.userId
+      savedLineUserId.value = profile.userId
+      fetchMonthData()
     } else {
-      // 💻 ถ้าเปิดผ่านเว็บเบราว์เซอร์ปกติ ให้ทำการล็อกหน้าจอและเด้งให้ใส่ PIN ก่อนเลย
-      isLocked.value = true // ล็อกหน้าเว็บ
-      showPinModal.value = true // เปิดหน้าต่างกรอกรหัส
-      isLoading.value = false // ปิดวงแหวนโหลด
+      isLocked.value = true
+      showPinModal.value = true
+      isLoading.value = false
     }
   } catch (error) {
     console.error('LIFF Init Error:', error)
-    // ถ้าพังก็ให้ล็อกหน้าจอเหมือนกัน
     isLocked.value = true
     showPinModal.value = true
     isLoading.value = false
@@ -1009,8 +950,6 @@ onMounted(async () => {
 </script>
 
 <style>
-/* 🌟 พระเอกของเรา: CSS สำหรับ Animation โคตรสมูท 🌟 */
-
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }

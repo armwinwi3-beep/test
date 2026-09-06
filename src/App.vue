@@ -149,7 +149,7 @@
             </div>
           </div>
 
-          <!-- รายละเอียดของวันที่เลือก (คลิกจากตาราง / ออโต้เลือกวันนี้) -->
+          <!-- รายละเอียดของวันที่เลือก -->
           <Transition name="fade" mode="out-in">
             <div v-if="selectedDayInfo && !selectedDayInfo.empty" :key="selectedDayInfo.day" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 shadow-lg border-2 transition-all duration-300 relative overflow-hidden"
                  :class="selectedDayInfo.data ? (selectedDayInfo.data.diff >= 0 || (selectedDayInfo.data.target===0 && selectedDayInfo.data.actual===0) ? 'border-green-500/50' : 'border-red-500/50') : 'border-slate-700/50'">
@@ -346,7 +346,7 @@
       </div>
     </Transition>
 
-    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up -->
+    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up 🌟 -->
     <Transition name="slide-up">
       <div v-if="isFormOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow pt-safe shadow-md relative z-10">
@@ -355,12 +355,13 @@
             <div class="font-bold text-slate-800">จดบันทึกใหม่</div>
             <div class="w-16"></div>
           </div>
-          <!-- 🌟 เพิ่มแท็บบิลให้เลือกเปลี่ยนสถานะได้เหมือนบิล -->
+          <!-- 🌟 เพิ่มแท็บ "คนยืม" ให้จดจากฟอร์มได้ครบ 5 แบบ -->
           <div class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
-            <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-4 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายจ่าย</button>
-            <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-4 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายรับ</button>
-            <button @click="formType = 'transfer'" :class="formType==='transfer' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-4 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">ย้ายเงิน</button>
-            <button @click="formType = 'bill'" :class="formType==='bill' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-4 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">บิล</button>
+            <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายจ่าย</button>
+            <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายรับ</button>
+            <button @click="formType = 'transfer'" :class="formType==='transfer' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">ย้ายเงิน</button>
+            <button @click="formType = 'bill'" :class="formType==='bill' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">บิล</button>
+            <button @click="formType = 'debtor'" :class="formType==='debtor' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">คนยืม</button>
           </div>
         </div>
 
@@ -489,7 +490,6 @@
       <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
       <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ</p>
 
-      <!-- ช่องกรอก PIN 4 ช่อง -->
       <div class="flex justify-center gap-3 mb-6">
         <input 
           v-for="(digit, index) in enteredPin" 
@@ -609,13 +609,12 @@ const formIconColor = computed(() => {
   return 'text-orange-500'
 })
 
-// 🌟 แก้ปัญหาที่ 1: กรองไม่ให้โชว์รายการบิลที่ยังไม่จ่ายในหน้ารายวัน
+// หน้ารายวัน (กรองบิลค้างชำระออก)
 const groupedRecords = computed(() => {
   const groups = {}
   
   records.value.forEach(item => {
     if (!item.date) return
-    // ซ่อนบิลค้างชำระไม่ให้ขึ้นในหน้าแรก
     if (item.type === 'รายจ่ายต้องชำระต่อเดือน' && item.status === 'ยังไม่จ่าย') return
     
     const parts = item.date.split('/')
@@ -637,9 +636,9 @@ const groupedRecords = computed(() => {
     groups[standardDateKey].items.push(item)
 
     const amt = parseFloat(item.amount) || 0
-    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') {
+    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน' || item.type === 'ให้ยืมเงิน') {
       groups[standardDateKey].expense += amt
-    } else if (item.type === 'รายรับ') {
+    } else if (item.type === 'รายรับ' || item.type === 'ได้คืนจากลูกหนี้') {
       groups[standardDateKey].income += amt
     }
   })
@@ -674,7 +673,7 @@ const billsData = computed(() => {
   return { unpaid, paid, totalUnpaid, totalPaid, remainingToSave, dailySave }
 })
 
-// Calendar
+// Calendar Calculations
 const calData = computed(() => {
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
   const isCurrentMonth = (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
@@ -716,6 +715,7 @@ const calData = computed(() => {
   return { calendarData, displayGap, nextTargetTommorow, daysLeft: daysInMonth - upToDay, currentGapReal, isCurrentMonth }
 })
 
+// 🌟 แก้ไข: จัดการ Offset วันแรกของเดือนเพื่อให้ตำแหน่งวันที่ในปฏิทินตรงกับวัน อา-ส อย่างถูกต้อง
 const calendarGrid = computed(() => {
   const year = viewDate.value.getFullYear()
   const month = viewDate.value.getMonth()
@@ -749,14 +749,12 @@ watch(viewDate, () => {
   selectedDayInfo.value = null
 })
 
-// 🌟 แก้ปัญหาที่ 3: ปฏิทินเลือกและโชว์วันล่าสุด (วันนี้) เป็นหลัก
 watch(calendarGrid, (newGrid) => {
   if (!selectedDayInfo.value) {
     const todayNode = newGrid.find(d => d.isToday)
     if (todayNode) {
       selectedDayInfo.value = todayNode
     } else {
-      // ถ้าไม่มีวันนี้ (เช่น ดูเดือนอื่น) ให้เลือกวันที่ล่าสุดที่มีข้อมูล
       const availableDays = newGrid.filter(d => !d.empty && d.data)
       if (availableDays.length > 0) {
         selectedDayInfo.value = availableDays[availableDays.length - 1]
@@ -790,6 +788,7 @@ const sortedCategories = computed(() => {
     return { name: c[0], amount: c[1], percent: Math.round((c[1]/totalExpense.value)*100), avg: c[1]/Math.max(1, div) }
   })
 })
+
 const insightText = computed(() => {
   if (totalGeneralExp.value === 0) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ ดีเยี่ยมมากๆ! 🎉`
   const top = sortedCategories.value[0]
@@ -882,7 +881,7 @@ const payUnpaidBill = (b) => {
   formBillStatus.value = 'จ่ายแล้ว'
 }
 
-// 🌟 แก้ปัญหาที่ 2: ฟังก์ชันบันทึกข้อมูล รองรับการเลือกประเภทเป็นบิลและเปลี่ยนสถานะแบบบิลได้จริง
+// 🌟 บันทึกข้อมูล
 const saveRecord = async () => {
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
   
@@ -900,7 +899,7 @@ const saveRecord = async () => {
   } else if (formType.value === 'debtor') {
     if(!formDebtorName.value.trim()) return alert("⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
     if(!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
-    payload.type = formDebtorAction.value
+    payload.type = formDebtorAction.value === 'lend' ? 'ให้ยืมเงิน' : 'ได้คืนจากลูกหนี้'
     payload.category = formDebtorName.value.trim()
     payload.account = formAccount.value; payload.status = "-"
   } else {

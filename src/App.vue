@@ -519,7 +519,6 @@ const accountBalances = ref({})
 const debtorsData = ref({})
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
-const selectedDayInfo = ref(null)
 const isLocked = ref(false)
 const viewDate = ref(new Date())
 const currentDate = new Date()
@@ -580,7 +579,28 @@ const isIncome = (t) => t === 'รายรับ' || t === 'ได้คืน�
 // Computed
 const monthDisplay = computed(() => `${thMonths[viewDate.value.getMonth()]} ${(viewDate.value.getFullYear() + 543).toString().slice(-2)}`)
 const formDateDisplay = computed(() => `📅 วัน${thDays[currentDate.getDay()]}ที่ ${currentDate.getDate()} ${thMonths[currentDate.getMonth()]} ${(currentDate.getFullYear() + 543).toString().slice(-2)}`)
+// ❌ ลบของเดิม: const selectedDayInfo = ref(null)
 
+const selectedDay = ref(null)   // เก็บแค่ "เลขวัน"
+
+const selectedDayInfo = computed(() => {
+  if (!selectedDay.value) return null
+  return calendarGrid.value.find(d => !d.empty && d.day === selectedDay.value) || null
+})
+
+const openDayInfo = (dayObj) => {
+  if (!dayObj.empty) selectedDay.value = dayObj.day
+}
+
+// auto-select วันล่าสุดทันทีที่เข้าเดือน
+watch(viewDate, () => {
+  const t = new Date()
+  const sameMonth = viewDate.value.getMonth() === t.getMonth()
+                 && viewDate.value.getFullYear() === t.getFullYear()
+  selectedDay.value = sameMonth
+    ? t.getDate()
+    : new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
+}, { immediate: true })
 const formIcon = computed(() => {
   if (formType.value === 'expense') return '↑'
   if (formType.value === 'income') return '↓'
@@ -662,9 +682,28 @@ const billsData = computed(() => {
 
   return { unpaid, paid, totalUnpaid, totalPaid, remainingToSave, dailySave }
 })
+const isUnpaidBill = (r) =>
+  r.type === 'รายจ่ายต้องชำระต่อเดือน' && r.status === 'ยังไม่จ่าย'
+const toggleBillStatus = (b) => {
+  const i = records.value.findIndex(r => r.id === b.id)
+  if (i === -1) return
+
+  const willPay = records.value[i].status === 'ยังไม่จ่าย'
+  const today = new Date().toISOString().slice(0, 10)
+
+  records.value[i] = {
+    ...records.value[i],
+    status: willPay ? 'จ่ายแล้ว' : 'ยังไม่จ่าย',
+    paidDate: willPay ? today : null
+  }
+  saveData()   // ชื่อฟังก์ชัน persist เดิมของคุณ
+}
+// รายการที่ "นับจริง" เท่านั้น
+const effectiveRecords = computed(() => records.value.filter(r => !isUnpaidBill(r)))
 
 // Calendar
 const calData = computed(() => {
+  const src = effectiveRecords.value 
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
   const isCurrentMonth = (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
   const upToDay = isCurrentMonth ? currentDate.getDate() : daysInMonth

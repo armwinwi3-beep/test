@@ -452,7 +452,23 @@
         </div>
       </div>
     </Transition>
+    <!-- ปุ่มเปิดโหมดแอดมิน -->
+<button
+  v-if="!isAdminMode"
+  @click="openAdminMode"
+  class="fixed top-4 right-4 z-[9999] bg-slate-800 text-yellow-400 border border-yellow-400/40 px-4 py-2 rounded-xl text-sm font-bold shadow-lg"
+>
+  🔐 แอดมิน
+</button>
 
+<!-- ปุ่มออกจากโหมดแอดมิน -->
+<button
+  v-else
+  @click="exitAdminMode"
+  class="fixed top-4 right-4 z-[9999] bg-yellow-400 text-slate-900 px-4 py-2 rounded-xl text-sm font-bold shadow-lg"
+>
+  🔓 ออกจากแอดมิน
+</button>
     <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล -->
     <Transition name="fade">
       <div v-if="!isFormOpen && !isSummaryOpen && (currentTab === 'home' || currentTab === 'calendar')" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">

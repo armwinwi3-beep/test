@@ -136,13 +136,9 @@
                    @click="openDayInfo(day)"
                    class="aspect-square flex flex-col items-center justify-center rounded-xl relative cursor-pointer transition-all duration-200 select-none"
                    :class="[
-                     day.empty ? 'invisible' : 'hover:bg-slate-700 active:scale-90',
-                     selectedDayInfo?.day === day.day 
-                       ? 'bg-blue-600 text-white font-bold shadow-lg ring-2 ring-blue-400 transform scale-105 z-10' 
-                       : 'bg-slate-800/40 text-slate-300 font-medium',
-                     day.isToday && selectedDayInfo?.day !== day.day 
-                       ? 'border-2 border-brand-yellow text-brand-yellow font-black shadow-[0_0_10px_rgba(252,211,77,0.3)]' 
-                       : ''
+                     day.empty ? 'invisible' : 'bg-slate-800/40 hover:bg-slate-700 active:scale-90',
+                     day.isToday ? 'border-2 border-brand-yellow text-brand-yellow font-black shadow-[0_0_10px_rgba(252,211,77,0.3)]' : 'text-slate-300 font-medium',
+                     selectedDayInfo?.day === day.day ? 'ring-2 ring-blue-500 bg-blue-900/50' : ''
                    ]">
                 <span v-if="!day.empty">{{ day.day }}</span>
                 <!-- จุดสีบอกสถานะ -->
@@ -153,7 +149,7 @@
             </div>
           </div>
 
-          <!-- รายรายละเอียดของวันที่เลือก -->
+          <!-- รายละเอียดของวันที่เลือก (คลิกจากตาราง) -->
           <Transition name="fade" mode="out-in">
             <div v-if="selectedDayInfo && !selectedDayInfo.empty" :key="selectedDayInfo.day" class="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 shadow-lg border-2 transition-all duration-300 relative overflow-hidden"
                  :class="selectedDayInfo.data ? (selectedDayInfo.data.diff >= 0 || (selectedDayInfo.data.target===0 && selectedDayInfo.data.actual===0) ? 'border-green-500/50' : 'border-red-500/50') : 'border-slate-700/50'">
@@ -203,6 +199,7 @@
             <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
           </div>
 
+          <!-- 🌟 ปุ่มจดเพิ่มแบบใหม่ ดูน่ากดขึ้น 🌟 -->
           <button @click="openForm('debtor')" class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(124,58,237,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
             <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             จดให้ยืม / ได้คืน
@@ -234,6 +231,7 @@
             <div class="text-4xl font-black tracking-tight">{{ billsData.totalPaid.toLocaleString('th-TH') }} ฿</div>
           </div>
 
+          <!-- 🌟 ปุ่มจดบิลแบบใหม่ ดูน่ากดขึ้น 🌟 -->
           <button @click="openForm('bill')" class="w-full bg-gradient-to-r from-orange-500 to-amber-500 text-white py-4 rounded-2xl font-bold text-lg mb-6 active:scale-95 transition-all shadow-[0_4px_20px_rgba(245,158,11,0.4)] flex justify-center items-center gap-2 hover:brightness-110">
             <svg class="w-6 h-6 fill-white" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             จดบิลเพิ่ม
@@ -250,30 +248,17 @@
             </div>
 
             <h3 class="text-sm font-bold mb-3 text-red-400 flex items-center gap-2"><span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span> ยอดค้างชำระ ({{ billsData.totalUnpaid.toLocaleString('th-TH') }} ฿)</h3>
-            
-            <!-- 🌟 ปรับปรุงหน้าตา Bill Card ค้างชำระ -->
-            <div v-for="b in billsData.unpaid" :key="b.id" class="bg-brand-card rounded-xl p-4 mb-3 flex flex-col gap-3 border-l-4 border-red-500 shadow-sm transition-transform relative overflow-hidden">
-              <div class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-bl-xl shadow-sm tracking-wide">รอชำระ</div>
-              
-              <div class="flex items-start gap-3 mt-1">
-                <div class="bg-red-500/20 text-red-400 p-3 rounded-xl text-xl">🧾</div>
-                <div class="flex-1">
-                  <div class="font-bold text-base text-red-400">{{ b.category }}</div>
-                  <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-                    <span>📅 {{ b.date }} <span v-if="b.time!=='-'" class="ml-1 text-slate-500">{{ b.time.substring(0,5) }} น.</span></span>
-                    <span v-if="b.note!=='-'" class="text-yellow-400 font-medium truncate max-w-[120px] ml-1">• {{ b.note }}</span>
-                  </div>
-                  <div class="text-red-400 font-black text-xl mt-1.5">{{ b.amount.toLocaleString('th-TH') }} ฿</div>
+            <div v-for="b in billsData.unpaid" :key="b.id" class="bg-brand-card rounded-xl p-3 mb-3 flex justify-between items-center border-l-4 border-red-500 shadow-sm active:scale-[0.98] transition-transform">
+              <div class="flex items-center gap-3 flex-1 cursor-pointer" @click="payUnpaidBill(b)">
+                <div class="bg-red-500/20 text-red-400 p-2.5 rounded-xl text-lg">⏳</div>
+                <div>
+                  <div class="font-bold text-sm text-red-400">{{ b.category }} <span class="text-[10px] bg-slate-800 text-slate-300 px-1 rounded ml-1" v-if="b.time!=='-'">{{ b.time.substring(0,5) }}</span></div>
+                  <div class="text-[11px] text-slate-400 mt-1">{{ b.date }} <span v-if="b.note!=='-'" class="text-yellow-400 font-medium">• {{ b.note }}</span> <span class="text-blue-400 ml-1">(คลิกเพื่อจ่าย 👆)</span></div>
                 </div>
               </div>
-              
-              <div class="flex items-center gap-2 mt-2 border-t border-slate-700/50 pt-3">
-                <button @click="payUnpaidBill(b)" class="flex-1 bg-green-600 hover:bg-green-500 text-white py-2 rounded-lg text-sm font-bold active:scale-95 transition-all shadow-md flex justify-center items-center gap-1.5">
-                   ✅ จ่ายแล้ว
-                </button>
-                <button @click="deleteRecord(b)" class="text-slate-500 hover:text-red-500 p-2 bg-slate-800 hover:bg-red-500/20 rounded-lg active:scale-95 transition-all w-10 flex justify-center items-center">
-                  🗑️
-                </button>
+              <div class="flex items-center gap-3">
+                <div class="text-red-400 font-bold text-base">{{ b.amount.toLocaleString('th-TH') }} ฿</div>
+                <button @click="deleteRecord(b)" class="text-slate-600 hover:text-red-500 p-1.5 bg-slate-800/50 hover:bg-red-500/10 rounded-lg active:scale-75 transition-all">🗑️</button>
               </div>
             </div>
           </div>
@@ -297,7 +282,7 @@
       </Transition>
     </main>
 
-    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up -->
+    <!-- 🌟 หน้าต่างสรุป (Modal) แบบ Slide-up (คงเดิม) -->
     <Transition name="slide-up">
       <div v-if="isSummaryOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow p-4 pt-safe flex items-end justify-between shadow-md relative z-10">
@@ -363,7 +348,7 @@
       </div>
     </Transition>
 
-    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up -->
+    <!-- 🌟 หน้าต่างจดบันทึก (Form Modal) แบบ Slide-up (คงเดิม) -->
     <Transition name="slide-up">
       <div v-if="isFormOpen" class="fixed inset-0 bg-brand-bg z-50 flex flex-col">
         <div class="bg-brand-yellow pt-safe shadow-md relative z-10">
@@ -452,24 +437,8 @@
         </div>
       </div>
     </Transition>
-    <!-- ปุ่มเปิดโหมดแอดมิน -->
-<button
-  v-if="!isAdminMode"
-  @click="openAdminMode"
-  class="fixed top-4 right-4 z-[9999] bg-slate-800 text-yellow-400 border border-yellow-400/40 px-4 py-2 rounded-xl text-sm font-bold shadow-lg"
->
-  🔐 แอดมิน
-</button>
 
-<!-- ปุ่มออกจากโหมดแอดมิน -->
-<button
-  v-else
-  @click="exitAdminMode"
-  class="fixed top-4 right-4 z-[9999] bg-yellow-400 text-slate-900 px-4 py-2 rounded-xl text-sm font-bold shadow-lg"
->
-  🔓 ออกจากแอดมิน
-</button>
-    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล -->
+    <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล 🌟 -->
     <Transition name="fade">
       <div v-if="!isFormOpen && !isSummaryOpen && (currentTab === 'home' || currentTab === 'calendar')" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">
         <button @click="openForm('expense')" class="pointer-events-auto bg-brand-blue text-white px-7 py-3.5 rounded-full font-bold shadow-[0_8px_30px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-blue-500 active:scale-90 transition-all hover:-translate-y-1">
@@ -505,6 +474,74 @@
       </nav>
     </Transition>
   </div>
+  <!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
+<div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl animate-fade-in">
+    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+      🔐
+    </div>
+    <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
+    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ</p>
+
+    <!-- ช่องกรอก PIN 4 ช่อง -->
+    <div class="flex justify-center gap-3 mb-6">
+      <input 
+        v-for="(digit, index) in enteredPin" 
+        :key="index"
+        type="password" 
+        maxlength="1" 
+        v-model="enteredPin[index]"
+        @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
+        class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
+      />
+    </div>
+
+    <div class="flex gap-2">
+      <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
+        ยกเลิก
+      </button>
+      <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
+        ยืนยัน
+      </button>
+    </div>
+  </div>
+</div>
+<!-- ปุ่มเปิดหน้าใส่ PIN สำหรับเข้าโหมด Admin บนเว็บ -->
+<button @click="openAdminMode" class="fixed top-3 right-3 z-40 bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
+  <span>🔐</span> โหมดแอดมิน
+</button>
+<!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
+<div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+  <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl">
+    <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
+      🔐
+    </div>
+    <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
+    <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ (0000)</p>
+
+    <!-- ช่องกรอก PIN 4 ช่อง -->
+    <div class="flex justify-center gap-3 mb-6">
+      <input 
+        v-for="(digit, index) in enteredPin" 
+        :key="index"
+        type="password" 
+        maxlength="1" 
+        v-model="enteredPin[index]"
+        @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
+        class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
+      />
+    </div>
+
+    <div class="flex gap-2">
+      <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
+        ยกเลิก
+      </button>
+      <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
+        ยืนยัน
+      </button>
+    </div>
+  </div>
+</div>
 </template>
 
 <script setup>
@@ -512,21 +549,19 @@ import { ref, computed, onMounted, watch } from 'vue'
 import liff from '@line/liff'
 
 const LIFF_ID = '2010880429-sx53ElMd'
-const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
+const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com' // <-- (อย่าลืมแก้เป็นลิงก์ Render ของคุณเหมือนเดิมนะครับ)
 
 // State
-const isAdminMode = ref(false)
-const showPinModal = ref(false)
-const enteredPin = ref(['', '', '', ''])
-const correctPin = 'aaaa'
-
+// Admin PIN State
+const isAdminMode = ref(false) // เช็คว่ากำลังอยู่ในโหมดแอดมินหรือยัง
+const showPinModal = ref(false) // ควบคุมการแสดงกล่องกรอก PIN
+const enteredPin = ref(['', '', '', '']) // เก็บตัวเลข 4 ช่อง
+const correctPin = 'aaaa' // รหัสผ่านแอดมินที่ตั้งไว้
 const currentTab = ref('home')
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
 const isLoading = ref(true)
 const userId = ref('admin')
-const savedLineUserId = ref('')
-
 const records = ref([])
 const totalBalance = ref(0)
 const totalExpense = ref(0)
@@ -535,6 +570,7 @@ const accountBalances = ref({})
 const debtorsData = ref({})
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
+const selectedDayInfo = ref(null) // สำหรับเก็บข้อมูลวันที่กดดูในปฏิทิน
 const isLocked = ref(false)
 const viewDate = ref(new Date())
 const currentDate = new Date()
@@ -556,6 +592,25 @@ const formDestAcc = ref('')
 const formDebtorAction = ref('lend')
 const formDebtorName = ref('')
 
+const initLiff = async () => {
+  try {
+    await liff.init({ liffId: LIFF_ID })
+    if (!liff.isLoggedIn()) {
+      liff.login() // ถ้ายังไม่ล็อกอิน LINE ระบบจะพาไปล็อกอินอัตโนมัติ
+    } else {
+      const profile = await liff.getProfile()
+      const lineUserId = profile.userId // ได้ LINE User ID มาแล้ว!
+      
+      // นำ lineUserId ไปใช้ดึงข้อมูลเฉพาะของเจ้านั้นๆ แทนคำว่า 'admin' เดิม
+      currentUserId.value = lineUserId 
+      fetchMonthData() 
+    }
+  } catch (error) {
+    console.error('LIFF Initialization failed: ', error)
+    // กรณีรันบนคอมพิวเตอร์ทั่วไป (ไม่ได้เปิดผ่าน LINE) ให้ fallback ใช้ 'admin' ตามเดิมได้เลยครับ
+    fetchMonthData()
+  }
+}
 const openAdminMode = () => {
   enteredPin.value = ['', '', '', '']
   showPinModal.value = true
@@ -567,7 +622,8 @@ const verifyPin = () => {
     showPinModal.value = false
     isLocked.value = false
     isAdminMode.value = true
-    userId.value = 'admin'
+
+    userId.value = 'admin' // บังคับสลับไปใช้กระเป๋า admin
     fetchMonthData()
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
   } else {
@@ -578,11 +634,10 @@ const verifyPin = () => {
 
 const exitAdminMode = () => {
   isAdminMode.value = false
-  userId.value = savedLineUserId.value || 'admin'
-  fetchMonthData()
+  // คืนค่ากลับเป็น LINE User ID ของผู้ใช้ปัจจุบัน
+  // (ถ้ามีฟังก์ชันดึงไอดีไลน์เดิมเก็บไว้ สามารถเรียกใช้งานใหม่ได้ที่นี่ครับ)
   showToast('🔒 ออกจากโหมดแอดมินแล้ว')
 }
-
 // Helpers
 const showToast = (msg, error = false) => {
   toastMsg.value = msg; isError.value = error
@@ -590,7 +645,6 @@ const showToast = (msg, error = false) => {
 }
 const isExpense = (t) => t.includes('รายจ่าย') || t === 'ให้ยืมเงิน'
 const isIncome = (t) => t === 'รายรับ' || t === 'ได้คืนจากลูกหนี้'
-const isUnpaidBill = (r) => r.type === 'รายจ่ายต้องชำระต่อเดือน' && r.status === 'ยังไม่จ่าย'
 
 // Computed
 const monthDisplay = computed(() => `${thMonths[viewDate.value.getMonth()]} ${(viewDate.value.getFullYear() + 543).toString().slice(-2)}`)
@@ -611,54 +665,67 @@ const formIconColor = computed(() => {
   return 'text-orange-500'
 })
 
-// รายการที่ "นับจริง" เท่านั้น (ตัดบิลที่ยังไม่จ่ายออก)
-const effectiveRecords = computed(() => records.value.filter(r => !isUnpaidBill(r)))
-
 const groupedRecords = computed(() => {
   const groups = {}
-  effectiveRecords.value.forEach(item => {
+  
+  records.value.forEach(item => {
     if (!item.date) return
+    
     const parts = item.date.split('/')
     const day = parseInt(parts[0], 10)
     const month = parseInt(parts[1], 10)
     const year = parts[2]
-    const key = `${day}/${month}/${year}`
+    const standardDateKey = `${day}/${month}/${year}`
 
-    if (!groups[key]) {
-      groups[key] = { date: key, day, expense: 0, income: 0, items: [] }
+    if (!groups[standardDateKey]) {
+      groups[standardDateKey] = {
+        date: standardDateKey,
+        day: day,
+        expense: 0,
+        income: 0,
+        items: []
+      }
     }
-    groups[key].items.push(item)
+
+    groups[standardDateKey].items.push(item)
 
     const amt = parseFloat(item.amount) || 0
-    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') groups[key].expense += amt
-    else if (item.type === 'รายรับ') groups[key].income += amt
+    if (item.type === 'รายจ่าย' || item.type === 'รายจ่ายต้องชำระต่อเดือน') {
+      groups[standardDateKey].expense += amt
+    } else if (item.type === 'รายรับ') {
+      groups[standardDateKey].income += amt
+    }
   })
 
-  Object.values(groups).forEach(g => {
-    g.items.sort((a, b) => (b.time || '').localeCompare(a.time || ''))
+  // 🔽 เพิ่มโค้ดตรงนี้ครับ เพื่อเรียงเวลาข้างในแต่ละวันให้รายการล่าสุดขึ้นก่อน
+  Object.values(groups).forEach(group => {
+    group.items.sort((a, b) => {
+      // เทียบเวลา string เช่น "19:55:00" กับ "08:51:00" (เรียงจากมากไปน้อย)
+      return (b.time || '').localeCompare(a.time || '')
+    })
   })
+
+  // เรียงลำดับการ์ดวันจากวันล่าสุดลงไป
   return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 
 // Debtors
-const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a, b) => a + b, 0))
-const debtorsList = computed(() =>
-  Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a, b) => b[1] - a[1]).map(d => ({ name: d[0], amount: d[1] }))
-)
+const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a,b) => a+b, 0))
+const debtorsList = computed(() => Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a,b) => b[1]-a[1]).map(d => ({name: d[0], amount: d[1]})))
 
 // Bills
 const billsData = computed(() => {
-  const bills = records.value.filter(r => r.type === 'รายจ่ายต้องชำระต่อเดือน').slice().reverse()
+  const bills = records.value.filter(r => r.type === 'รายจ่ายต้องชำระต่อเดือน').reverse()
   const unpaid = bills.filter(b => b.status === 'ยังไม่จ่าย')
   const paid = bills.filter(b => b.status !== 'ยังไม่จ่าย')
-  const totalUnpaid = unpaid.reduce((s, b) => s + b.amount, 0)
-  const totalPaid = paid.reduce((s, b) => s + b.amount, 0)
-
+  const totalUnpaid = unpaid.reduce((sum, b) => sum + b.amount, 0)
+  const totalPaid = paid.reduce((sum, b) => sum + b.amount, 0)
+  
   const effectiveBalance = totalBalance.value + simulatedIncome.value
   const remainingToSave = totalUnpaid - effectiveBalance
-
+  
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-  const isCurrentMonth = viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()
+  const isCurrentMonth = (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
   const remainingDays = isCurrentMonth ? (daysInMonth - currentDate.getDate() + 1) : daysInMonth
   const dailySave = remainingToSave / Math.max(1, remainingDays)
 
@@ -667,16 +734,15 @@ const billsData = computed(() => {
 
 // Calendar
 const calData = computed(() => {
-  const src = effectiveRecords.value
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-  const isCurrentMonth = viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()
+  const isCurrentMonth = (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
   const upToDay = isCurrentMonth ? currentDate.getDate() : daysInMonth
 
   let currentGapReal = billsData.value.totalUnpaid - totalBalance.value
   let dailyS = new Array(upToDay + 1).fill(0)
-
-  src.forEach(r => {
-    if (!r.date) return
+  
+  records.value.forEach(r => {
+    if (r.status === 'ยังไม่จ่าย') return
     let day = parseInt(r.date.split('/')[0])
     if (day >= 1 && day <= upToDay) {
       if (isIncome(r.type)) dailyS[day] += r.amount
@@ -684,7 +750,7 @@ const calData = computed(() => {
     }
   })
 
-  let sumS = dailyS.reduce((a, b) => a + b, 0)
+  let sumS = dailyS.reduce((a,b) => a+b, 0)
   let currentRunningGap = Math.max(0, currentGapReal + sumS)
   let calendarData = []
 
@@ -708,57 +774,58 @@ const calData = computed(() => {
   return { calendarData, displayGap, nextTargetTommorow, daysLeft: daysInMonth - upToDay, currentGapReal, isCurrentMonth }
 })
 
+// 🌟 ตัวแปรใหม่สำหรับจัดตารางปฏิทิน 🌟
 const calendarGrid = computed(() => {
   const year = viewDate.value.getFullYear()
   const month = viewDate.value.getMonth()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const firstDay = new Date(year, month, 1).getDay()
+  const firstDay = new Date(year, month, 1).getDay() // 0 = อาทิตย์, 1 = จันทร์
 
   const grid = []
-  for (let i = 0; i < firstDay; i++) grid.push({ empty: true })
+  // ใส่ช่องว่างก่อนวันที่ 1
+  for (let i = 0; i < firstDay; i++) {
+    grid.push({ empty: true })
+  }
 
+  // เอาข้อมูลจาก calData มาใส่ให้ตรงวัน
   const dataMap = {}
   calData.value.calendarData.forEach(d => { dataMap[d.day] = d })
 
+  // ใส่วันที่ทั้งหมดในเดือน
   for (let i = 1; i <= daysInMonth; i++) {
     grid.push({
       empty: false,
       day: i,
-      data: dataMap[i] || null,
+      data: dataMap[i] || null, // ถ้าเป็นอนาคต จะเป็น null
       isToday: i === currentDate.getDate() && month === currentDate.getMonth() && year === currentDate.getFullYear()
     })
   }
   return grid
 })
 
-/* ===== วันที่เลือกในปฏิทิน (มีชุดเดียวเท่านั้น) ===== */
-const selectedDay = ref(null)
-
-const selectedDayInfo = computed(() => {
-  if (!selectedDay.value) return null
-  return calendarGrid.value.find(d => !d.empty && d.day === selectedDay.value) || null
-})
-
+// ดูข้อมูลเมื่อคลิกวันที่ในปฏิทิน
 const openDayInfo = (dayObj) => {
-  if (!dayObj.empty) selectedDay.value = dayObj.day
+  if (!dayObj.empty) selectedDayInfo.value = dayObj
 }
 
-// auto-select วันล่าสุดของเดือนที่กำลังดู
+// เลือกล้างข้อมูลวันที่เวลาเปลี่ยนเดือน
 watch(viewDate, () => {
-  const t = new Date()
-  const sameMonth = viewDate.value.getMonth() === t.getMonth() && viewDate.value.getFullYear() === t.getFullYear()
-  selectedDay.value = sameMonth
-    ? t.getDate()
-    : new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
+  selectedDayInfo.value = null
+})
+// ออโต้เลือก "วันนี้" ถ้าเปิดมาหน้าปฏิทิน
+watch(calendarGrid, (newGrid) => {
+  if (!selectedDayInfo.value) {
+    const todayNode = newGrid.find(d => d.isToday)
+    if (todayNode) selectedDayInfo.value = todayNode
+  }
 }, { immediate: true })
 
 // Summary
 const daysDivisor = computed(() => {
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-  return (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear())
-    ? currentDate.getDate() : daysInMonth
+  return (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()) ? currentDate.getDate() : daysInMonth
 })
-const totalGeneralExp = computed(() => records.value.filter(r => r.type === 'รายจ่าย').reduce((s, r) => s + r.amount, 0))
+const totalGeneralExp = computed(() => records.value.filter(r => r.type === 'รายจ่าย').reduce((s,r) => s+r.amount, 0))
 const avgDailyTotal = computed(() => totalExpense.value / Math.max(1, daysDivisor.value))
 const avgDailyGeneral = computed(() => totalGeneralExp.value / Math.max(1, daysDivisor.value))
 const maxVal = computed(() => Math.max(totalIncome.value, totalExpense.value))
@@ -767,29 +834,23 @@ const expWidth = computed(() => maxVal.value > 0 ? (totalExpense.value / maxVal.
 
 const sortedCategories = computed(() => {
   let catMap = {}
-  effectiveRecords.value.forEach(r => {
-    if (isExpense(r.type)) {
+  records.value.forEach(r => {
+    if (r.status !== 'ยังไม่จ่าย' && isExpense(r.type)) {
       let c = r.category || 'ไม่ระบุ'
       catMap[c] = (catMap[c] || 0) + r.amount
     }
   })
-  return Object.entries(catMap).sort((a, b) => b[1] - a[1]).map(c => {
-    let div = ['ShopeePay', 'SEasyCash', 'SPayExtra', 'Internet', 'ค่าทำฟัน', 'ประกันสังคม', 'บิลอื่นๆ'].includes(c[0])
-      ? new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
-      : daysDivisor.value
-    return { name: c[0], amount: c[1], percent: Math.round((c[1] / totalExpense.value) * 100), avg: c[1] / Math.max(1, div) }
+  return Object.entries(catMap).sort((a,b) => b[1]-a[1]).map(c => {
+    let div = ['ShopeePay', 'SEasyCash', 'SPayExtra', 'Internet', 'ค่าทำฟัน', 'ประกันสังคม', 'บิลอื่นๆ'].includes(c[0]) ? new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate() : daysDivisor.value
+    return { name: c[0], amount: c[1], percent: Math.round((c[1]/totalExpense.value)*100), avg: c[1]/Math.max(1, div) }
   })
 })
-
 const insightText = computed(() => {
   if (totalGeneralExp.value === 0) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ ดีเยี่ยมมากๆ! 🎉`
   const top = sortedCategories.value[0]
-  if (!top) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ 🎉`
   let txt = `คุณหมดเงินไปกับ <b>${top.name}</b> เยอะที่สุด คิดเป็น <b>${top.percent}%</b> ของรายจ่ายทั้งหมด`
-  if (totalIncome.value > 0 && totalExpense.value > totalIncome.value)
-    txt += `<br><span class="text-red-400 mt-1 inline-block">⚠️ ระวัง: เดือนนี้ใช้จ่ายเกินรายรับไปแล้วนะ!</span>`
-  else if (totalIncome.value > 0 && totalExpense.value <= totalIncome.value * 0.5)
-    txt += `<br><span class="text-green-400 mt-1 inline-block">✨ ยอดเยี่ยม: ใช้เงินไม่ถึงครึ่งของรายรับ มีเงินเก็บแน่นอน!</span>`
+  if (totalIncome.value > 0 && totalExpense.value > totalIncome.value) txt += `<br><span class="text-red-400 mt-1 inline-block">⚠️ ระวัง: เดือนนี้ใช้จ่ายเกินรายรับไปแล้วนะ!</span>`
+  else if (totalIncome.value > 0 && totalExpense.value <= totalIncome.value * 0.5) txt += `<br><span class="text-green-400 mt-1 inline-block">✨ ยอดเยี่ยม: ใช้เงินไม่ถึงครึ่งของรายรับ มีเงินเก็บแน่นอน!</span>`
   return txt
 })
 
@@ -804,21 +865,31 @@ const changeMonth = (dir) => {
   fetchMonthData()
 }
 
+// ในฟังก์ชัน fetchMonthData ของ src/App.vue
 const fetchMonthData = async () => {
-  const activeUserId = userId.value || 'admin'
+  // 💡 ป้องกันไม่ให้ส่งค่าว่าง: ถ้ายังไม่มี user_id ให้ใช้ 'admin' สำรองไว้ก่อน
+  const currentUserId = userId.value ? userId.value : 'admin'
+
   isLoading.value = true
   const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
   const y = String(viewDate.value.getFullYear()).slice(-2)
-
+  
   try {
-    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${activeUserId}`)
+    // ใช้ตัวแปร currentUserId ที่ปลอดภัยแล้วแทน
+    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${currentUserId}`)
     if (!res.ok) throw new Error()
     const data = await res.json()
 
     records.value = (data.records || []).map(row => ({
-      id: row.id, date: row.date, time: row.time, type: row.type,
-      amount: row.amount, category: row.category, account: row.account,
-      note: row.note, status: row.status
+      id: row.id,
+      date: row.date,
+      time: row.time,
+      type: row.type,
+      amount: row.amount,
+      category: row.category,
+      account: row.account,
+      note: row.note,
+      status: row.status
     }))
 
     totalBalance.value = data.total_balance || 0
@@ -826,57 +897,33 @@ const fetchMonthData = async () => {
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
+
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
   } finally {
     isLoading.value = false
   }
 }
-
-// 🔴 ต้องมี endpoint /api/update-status ฝั่ง backend ก่อน (ดูหมายเหตุด้านล่าง)
-const toggleBillStatus = async (b) => {
-  const i = records.value.findIndex(r => r.id === b.id)
-  if (i === -1) return
-
-  const willPay = records.value[i].status === 'ยังไม่จ่าย'
-  const newStatus = willPay ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'
-  const prevStatus = records.value[i].status
-
-  // optimistic update — เห็นผลทันทีไม่ต้องรอเซิร์ฟเวอร์
-  records.value[i] = { ...records.value[i], status: newStatus }
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/update-status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: b.id, status: newStatus, user_id: userId.value })
-    })
-    const data = await res.json()
-    if (data.status !== 'success') throw new Error(data.message)
-    showToast(willPay ? '✅ บันทึกว่าจ่ายแล้ว' : '↩️ ย้อนกลับเป็นยังไม่จ่าย')
-    fetchMonthData()
-  } catch (e) {
-    records.value[i] = { ...records.value[i], status: prevStatus } // rollback
-    showToast('❌ อัปเดตสถานะไม่สำเร็จ', true)
-  }
-}
-
 const deleteRecord = async (item) => {
+  // เปลี่ยนจาก confirm() แบบเดิม มาเป็น Notification สวยๆ หรือลบแล้วแจ้งเตือนผ่าน Toast
   showToast("🗑️ กำลังลบข้อมูล...")
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
-      method: 'POST',
+      method: 'POST', 
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: item.id, user_id: userId.value })
+      body: JSON.stringify({ id: item.id, user_id: userId.value }) 
     })
     const data = await res.json()
-    if (data.status === 'success') { showToast("✅ ลบรายการเรียบร้อย"); fetchMonthData() }
-    else showToast('❌ ' + data.message, true)
-  } catch (e) {
-    showToast('❌ ขาดการเชื่อมต่อ', true)
+    if (data.status === 'success') { 
+      showToast("✅ ลบรายการเรียบร้อย") 
+      fetchMonthData() 
+    } else {
+      showToast('❌ ' + data.message, true)
+    }
+  } catch (e) { 
+    showToast('❌ ขาดการเชื่อมต่อ', true) 
   }
 }
-
 const openForm = (type) => {
   formType.value = type
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''
@@ -893,27 +940,28 @@ const payUnpaidBill = (b) => {
 
 const saveRecord = async () => {
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
-
-  let payload = {
-    type: formType.value,
-    amount: formAmount.value,
+  
+  // 💡 แนบ user_id ไปกับข้อมูลที่บันทึกทุกครั้ง
+  let payload = { 
+    type: formType.value, 
+    amount: formAmount.value, 
     note: formNote.value || '-',
-    user_id: userId.value
+    user_id: userId.value 
   }
 
   if (formType.value === 'transfer') {
-    if (!formSourceAcc.value || !formDestAcc.value) return alert("⚠️ กรุณาเลือกบัญชีต้นทางและปลายทางให้ครบ!")
-    if (formSourceAcc.value === formDestAcc.value) return alert("⚠️ บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน!")
+    if(!formSourceAcc.value || !formDestAcc.value) return alert("⚠️ กรุณาเลือกบัญชีต้นทางและปลายทางให้ครบ!")
+    if(formSourceAcc.value === formDestAcc.value) return alert("⚠️ บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน!")
     payload.sourceAccount = formSourceAcc.value; payload.destinationAccount = formDestAcc.value
   } else if (formType.value === 'debtor') {
-    if (!formDebtorName.value.trim()) return alert("⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
-    if (!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
+    if(!formDebtorName.value.trim()) return alert("⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
+    if(!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     payload.type = formDebtorAction.value
     payload.category = formDebtorName.value.trim()
     payload.account = formAccount.value; payload.status = "-"
   } else {
-    if (!formCategory.value) return alert("⚠️ กรุณาเลือกหมวดหมู่ด้วยครับ!")
-    if ((formType.value !== 'bill' || formBillStatus.value === 'จ่ายแล้ว') && !formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
+    if(!formCategory.value) return alert("⚠️ กรุณาเลือกหมวดหมู่ด้วยครับ!")
+    if((formType.value !== 'bill' || formBillStatus.value === 'จ่ายแล้ว') && !formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     payload.category = formCategory.value
     payload.account = formAccount.value || '-'
     payload.status = formType.value === 'bill' ? formBillStatus.value : '-'
@@ -933,21 +981,26 @@ const saveRecord = async () => {
 
 onMounted(async () => {
   try {
-    await liff.init({ liffId: LIFF_ID })
-
+    await liff.init({ liffId: '2010880429-sx53ElMd' })
+    
+    // เช็คว่าเปิดผ่านแอป LINE บนมือถือจริงไหม
     if (liff.isInClient()) {
-      if (!liff.isLoggedIn()) { liff.login(); return }
+      if (!liff.isLoggedIn()) {
+        liff.login()
+        return
+      }
       const profile = await liff.getProfile()
-      userId.value = profile.userId
-      savedLineUserId.value = profile.userId
-      fetchMonthData()
+      userId.value = profile.userId // ใช้ไอดีไลน์จริง
+      fetchMonthData() // ดึงข้อมูลเลย ไม่ต้องใส่รหัส
     } else {
-      isLocked.value = true
-      showPinModal.value = true
-      isLoading.value = false
+      // 💻 ถ้าเปิดผ่านเว็บเบราว์เซอร์ปกติ ให้ทำการล็อกหน้าจอและเด้งให้ใส่ PIN ก่อนเลย
+      isLocked.value = true // ล็อกหน้าเว็บ
+      showPinModal.value = true // เปิดหน้าต่างกรอกรหัส
+      isLoading.value = false // ปิดวงแหวนโหลด
     }
   } catch (error) {
     console.error('LIFF Init Error:', error)
+    // ถ้าพังก็ให้ล็อกหน้าจอเหมือนกัน
     isLocked.value = true
     showPinModal.value = true
     isLoading.value = false
@@ -956,6 +1009,8 @@ onMounted(async () => {
 </script>
 
 <style>
+/* 🌟 พระเอกของเรา: CSS สำหรับ Animation โคตรสมูท 🌟 */
+
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }

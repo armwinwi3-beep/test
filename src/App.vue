@@ -355,7 +355,7 @@
             <div class="font-bold text-slate-800">จดบันทึกใหม่</div>
             <div class="w-16"></div>
           </div>
-          <!-- 🌟 เพิ่มแท็บ "คนยืม" ให้จดจากฟอร์มได้ครบ 5 แบบ -->
+          <!-- แท็บชนิดของฟอร์ม -->
           <div class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
             <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายจ่าย</button>
             <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายรับ</button>
@@ -422,7 +422,7 @@
                   <option value="เงินเดือน">💰 เงินเดือน</option><option value="จากพ่อ">👨 จากพ่อ</option><option value="จากแม่">👩 จากแม่</option><option value="อื่นๆ">อื่นๆ</option>
                 </template>
                 <template v-if="formType === 'bill'">
-                  <option value="ShopeePay">🧡 ShopeePay</option><option value="SEasyCash">💸 SEasyCash</option><option value="SPayExtra">💳 SPayExtra</option><option value="Internet">🌐 Internet</option><option value="ค่าทำฟัน">🦷 ค่าทำฟัน</option><option value="ประกันสังคม">🏥 ประกันสังคม</option><option value="บิลอื่นๆ">บิลอื่นๆ</option>
+                  <option value="ShopeePay">🧡 ShopeePay</option><option value="SEasyCash">💸 SEasyCash</option><option value="SPayExtra">💳 SPayExtra</option><option value="Internet">🌐 Internet</option><option value="ค่าทำฟัน">ฟังทำฟัน</option><option value="ประกันสังคม">🏥 ประกันสังคม</option><option value="บิลอื่นๆ">บิลอื่นๆ</option>
                 </template>
               </select>
             </div>
@@ -518,14 +518,15 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import liff from '@line/liff'
 
+// Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
 const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
+const correctPin = 'aaaa' // ⚠️ รหัส PIN สำหรับ Admin Mode สามารถเปลี่ยนได้ที่นี่
 
 // State
 const isAdminMode = ref(false)
 const showPinModal = ref(false)
 const enteredPin = ref(['', '', '', ''])
-const correctPin = 'aaaa'
 const currentTab = ref('home')
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
@@ -590,7 +591,7 @@ const showToast = (msg, error = false) => {
 const isExpense = (t) => t.includes('รายจ่าย') || t === 'ให้ยืมเงิน'
 const isIncome = (t) => t === 'รายรับ' || t === 'ได้คืนจากลูกหนี้'
 
-// Computed
+// Computed Properties
 const monthDisplay = computed(() => `${thMonths[viewDate.value.getMonth()]} ${(viewDate.value.getFullYear() + 543).toString().slice(-2)}`)
 const formDateDisplay = computed(() => `📅 วัน${thDays[currentDate.getDay()]}ที่ ${currentDate.getDate()} ${thMonths[currentDate.getMonth()]} ${(currentDate.getFullYear() + 543).toString().slice(-2)}`)
 
@@ -715,7 +716,7 @@ const calData = computed(() => {
   return { calendarData, displayGap, nextTargetTommorow, daysLeft: daysInMonth - upToDay, currentGapReal, isCurrentMonth }
 })
 
-// 🌟 แก้ไข: จัดการ Offset วันแรกของเดือนเพื่อให้ตำแหน่งวันที่ในปฏิทินตรงกับวัน อา-ส อย่างถูกต้อง
+// Grid ปฏิทิน
 const calendarGrid = computed(() => {
   const year = viewDate.value.getFullYear()
   const month = viewDate.value.getMonth()
@@ -763,7 +764,7 @@ watch(calendarGrid, (newGrid) => {
   }
 }, { immediate: true })
 
-// Summary
+// Summary Calculations
 const daysDivisor = computed(() => {
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
   return (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()) ? currentDate.getDate() : daysInMonth
@@ -798,7 +799,7 @@ const insightText = computed(() => {
   return txt
 })
 
-// Methods
+// Action Methods
 const applySimulation = () => { simulatedIncome.value = simulatedIncomeInput.value || 0 }
 const clearSimulation = () => { simulatedIncome.value = 0; simulatedIncomeInput.value = '' }
 
@@ -881,7 +882,6 @@ const payUnpaidBill = (b) => {
   formBillStatus.value = 'จ่ายแล้ว'
 }
 
-// 🌟 บันทึกข้อมูล
 const saveRecord = async () => {
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
   
@@ -922,6 +922,7 @@ const saveRecord = async () => {
   } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
 }
 
+// Lifecycle Hooks
 onMounted(async () => {
   try {
     await liff.init({ liffId: LIFF_ID })

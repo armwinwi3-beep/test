@@ -569,7 +569,6 @@ const showPinModal = ref(false) // ควบคุมการแสดงกล
 const enteredPin = ref(['', '', '', '']) // เก็บตัวเลข 4 ช่อง
 const correctPin = 'aaaa' // รหัสผ่านแอดมินที่ตั้งไว้
 const currentTab = ref('home')
-const records = ref([])
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
 const isLoading = ref(true)

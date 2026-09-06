@@ -824,9 +824,6 @@ const groupedRecords = computed(() => {
   return Object.values(groups).sort((a, b) => b.day - a.day)
 })
 
-// Debtors
-const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a,b) => a+b, 0))
-const debtorsList = computed(() => Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a,b) => b[1]-a[1]).map(d => ({name: d[0], amount: d[1]})))
 
 // Bills
 const billsData = computed(() => {

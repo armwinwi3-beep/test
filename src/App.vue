@@ -195,7 +195,7 @@
             🤝 คนยืมเงิน (ลูกหนี้)
           </div>
           <div class="bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl p-6 shadow-lg mb-5 text-white text-center">
-            <div class="text-sm font-medium mb-1 opacity-90">ยอดเงินที่คนอื่นยืมไปรวม</div>
+            <div class="text-sm font-medium mb-1 opacity-90">ยอดเงินที่ยังค้างรวม</div>
             <div class="text-4xl font-black tracking-tight">{{ totalDebtors.toLocaleString('th-TH') }} ฿</div>
           </div>
 
@@ -208,15 +208,33 @@
             <span class="text-4xl">😇</span>
             <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
           </div>
-          <div v-else v-for="d in debtorsList" :key="d.name" class="bg-brand-card rounded-2xl p-4 mb-3 flex justify-between items-center border-l-4 border-violet-500 shadow-sm hover:translate-x-1 transition-transform">
+          <div v-else v-for="d in debtorsList" :key="d.name" class="bg-brand-card rounded-2xl p-4 mb-3 border-l-4 border-violet-500 shadow-sm hover:translate-x-1 transition-transform">
             <div class="flex items-center gap-4">
               <div class="bg-violet-500/20 text-violet-400 p-2.5 rounded-xl text-xl">👤</div>
-              <div>
-                <div class="font-bold text-base text-white">{{ d.name }}</div>
-                <div class="text-xs text-slate-400">ยอดค้างชำระทั้งหมด</div>
+              <div class="min-w-0">
+                <div class="font-bold text-base text-white truncate">{{ d.name }}</div>
+                <div class="text-xs text-slate-400 mt-0.5">สถานะการคืนเงิน</div>
               </div>
             </div>
-            <div class="text-yellow-400 font-bold text-xl">{{ d.amount.toLocaleString('th-TH') }} ฿</div>
+
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <div class="bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
+                <div class="text-[10px] text-green-400 font-bold">💰 คืนแล้ว</div>
+                <div class="text-sm text-green-300 font-black mt-0.5">
+                  {{ d.repaid.toLocaleString('th-TH') }} ฿
+                </div>
+              </div>
+              <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-2">
+                <div class="text-[10px] text-yellow-400 font-bold">⏳ เหลือ</div>
+                <div class="text-sm font-black mt-0.5" :class="d.amount > 0 ? 'text-yellow-300' : 'text-green-300'">
+                  {{ d.amount.toLocaleString('th-TH') }} ฿
+                </div>
+              </div>
+            </div>
+
+            <div v-if="d.amount <= 0" class="mt-2 text-center text-[11px] font-bold text-green-400 bg-green-500/10 rounded-lg py-1.5">
+              ✅ คืนเงินครบแล้ว
+            </div>
           </div>
         </section>
 
@@ -412,7 +430,7 @@
             <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-if="formDebtorAction === 'repay'" v-model="formDebtorName" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
                 <option value="" disabled selected>👤 เลือกคนที่คืนเงิน</option>
-                <option v-for="d in debtorsList" :key="d.name" :value="d.name">
+                <option v-for="d in debtorsForRepay" :key="d.name" :value="d.name">
                   {{ d.name }} (ยอดค้าง {{ d.amount.toLocaleString('th-TH') }} ฿)
                 </option>
               </select>
@@ -658,8 +676,56 @@ const groupedRecords = computed(() => {
 })
 
 // Debtors
-const totalDebtors = computed(() => Object.values(debtorsData.value).reduce((a,b) => a+b, 0))
-const debtorsList = computed(() => Object.entries(debtorsData.value).filter(d => d[1] > 0).sort((a,b) => b[1]-a[1]).map(d => ({name: d[0], amount: d[1]})))
+// รายการคนยืม: ไม่ลบชื่อออกแม้ยอดจะเหลือ 0
+// เพื่อให้เห็นว่าใครคืนเงินแล้ว และเหลือเท่าไร
+const debtorRepayments = computed(() => {
+  const result = {}
+
+  records.value.forEach(r => {
+    if (r.type !== 'ได้คืนจากลูกหนี้' || !r.category) return
+
+    const amount = parseFloat(r.amount) || 0
+    result[r.category] = (result[r.category] || 0) + amount
+  })
+
+  return result
+})
+
+const totalDebtors = computed(() =>
+  Object.values(debtorsData.value).reduce((a, b) => a + (parseFloat(b) || 0), 0)
+)
+
+const debtorsList = computed(() => {
+  const names = new Set([
+    ...Object.keys(debtorsData.value || {}),
+    ...records.value
+      .filter(r => r.type === 'ให้ยืมเงิน' || r.type === 'ได้คืนจากลูกหนี้')
+      .map(r => r.category)
+      .filter(Boolean)
+  ])
+
+  return [...names]
+    .map(name => {
+      const remaining = Math.max(0, parseFloat(debtorsData.value?.[name]) || 0)
+      const repaid = debtorRepayments.value[name] || 0
+
+      return {
+        name,
+        amount: remaining,
+        repaid
+      }
+    })
+    .sort((a, b) => {
+      // คนที่ยังค้างให้ขึ้นก่อน คนที่คืนครบแล้วอยู่ด้านล่าง
+      if ((a.amount > 0) !== (b.amount > 0)) return a.amount > 0 ? -1 : 1
+      return a.name.localeCompare(b.name, 'th')
+    })
+})
+
+// รายชื่อที่ยังมียอดค้าง สำหรับ dropdown ตอนเลือก "เพื่อนคืนเงินให้แล้ว"
+const debtorsForRepay = computed(() =>
+  debtorsList.value.filter(d => d.amount > 0)
+)
 
 // Bills
 const billsData = computed(() => {

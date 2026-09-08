@@ -396,14 +396,14 @@
             <div class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-model="formSourceAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
                 <option value="" disabled selected>โอนจากบัญชี (ต้นทาง)</option>
-                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
+                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="ShopeeWallet">🛍️ ShopeeWallet</option><option value="เงินสด">💵 เงินสด</option>
               </select>
             </div>
             <div class="text-center text-slate-500 font-bold text-xl my-[-5px]">↓</div>
             <div class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-model="formDestAcc" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
                 <option value="" disabled selected>ย้ายเข้าบัญชี (ปลายทาง)</option>
-                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
+                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="ShopeeWallet">🛍️ ShopeeWallet</option><option value="เงินสด">💵 เงินสด</option>
               </select>
             </div>
           </template>
@@ -424,7 +424,7 @@
             <div v-show="formType !== 'bill' || formBillStatus === 'จ่ายแล้ว'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-model="formAccount" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
                 <option value="" disabled selected>💳 เลือกบัญชีที่ใช้เงิน</option>
-                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="เงินสด">💵 เงินสด</option>
+                <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="ShopeeWallet">🛍️ ShopeeWallet</option><option value="เงินสด">💵 เงินสด</option>
               </select>
             </div>
             <div v-if="formType === 'debtor'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">

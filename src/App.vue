@@ -519,13 +519,13 @@
   </div>
 
   <!-- แสดงชื่อเจ้าของบัญชี LINE ที่กำลังใช้งาน -->
-  <div v-if="lineDisplayName && !isAdminMode" :title="lineDisplayName" class="fixed top-3 right-3 z-40 max-w-[calc(100vw-1.5rem)] bg-gray-800/80 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md flex items-center gap-1.5">
+  <div v-if="lineDisplayName && !isAdminMode" :title="lineDisplayName" class="relative z-10 mx-4 mt-3 mb-2 self-endmax-w-[calc(100vw-1.5rem)] bg-gray-800/80 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md flex items-center gap-1.5">
     <span aria-hidden="true">👤</span>
     <span class="truncate">{{ lineDisplayName }}</span>
   </div>
 
   <!-- ปุ่มเปิดหน้าใส่ PIN สำหรับเข้าโหมด Admin บนเว็บ -->
-  <button v-else @click="openAdminMode" class="fixed top-3 right-3 z-40 bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
+  <button v-else @click="openAdminMode" class="relative z-10 mx-4 mt-3 mb-2 self-end bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
     <span>🔐</span> โหมดแอดมิน
   </button>
 

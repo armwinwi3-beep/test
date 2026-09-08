@@ -516,34 +516,34 @@
 
   <!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
   <div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-    <div class="bg-gray-900 border border-gray-800 w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl animate-fade-in">
+    <form @submit.prevent="verifyPin" role="dialog" aria-modal="true" aria-labelledby="admin-pin-title" class="bg-gray-900 border border-gray-800 w-full max-w-sm max-h-[90dvh] overflow-y-auto rounded-2xl p-6 text-center shadow-2xl animate-fade-in">
       <div class="w-12 h-12 bg-yellow-500/10 text-yellow-400 rounded-full flex items-center justify-center mx-auto mb-3 text-xl font-bold">
         🔐
       </div>
-      <h3 class="text-white text-lg font-bold mb-1">ใส่รหัส PIN แอดมิน</h3>
-      <p class="text-gray-400 text-xs mb-6">กรุณากรอกรหัส PIN 4 หลักเพื่อเข้าจัดการระบบ</p>
+      <h3 id="admin-pin-title" class="text-white text-lg font-bold mb-1">ใส่รหัสแอดมิน</h3>
+      <p id="admin-pin-help" class="text-gray-400 text-sm mb-5">กรอกรหัส 4 ตัวเพื่อเข้าจัดการระบบ</p>
 
-      <div class="flex justify-center gap-3 mb-6">
-        <input 
-          v-for="(digit, index) in enteredPin" 
-          :key="index"
-          type="password" 
-          maxlength="1" 
-          v-model="enteredPin[index]"
-          @input="(e) => { if(e.target.value && index < 3) e.target.nextElementSibling?.focus() }"
-          class="w-12 h-12 text-center text-xl font-bold bg-gray-800 text-white border border-gray-700 rounded-xl focus:border-yellow-500 focus:outline-none"
-        />
+      <div class="mb-5 text-left">
+        <label for="admin-pin" class="block text-sm text-gray-300 mb-2">รหัสแอดมิน</label>
+        <input ref="adminPinInput" id="admin-pin" :type="showAdminPin ? 'text' : 'password'"
+          v-model="enteredPin" maxlength="4" autocomplete="off" autocapitalize="none"
+          :spellcheck="false" aria-describedby="admin-pin-help" enterkeyhint="go"
+          class="w-full min-w-0 h-14 px-4 text-xl bg-gray-800 text-white border border-gray-600 rounded-xl focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/30" />
+        <div class="flex items-center justify-between gap-3 mt-2">
+          <button type="button" @click="showAdminPin = !showAdminPin" :aria-pressed="showAdminPin" class="min-h-[44px] text-sm text-yellow-400">{{ showAdminPin ? 'ซ่อนรหัส' : 'แสดงรหัส' }}</button>
+          <button type="button" @click="clearAdminPin" :disabled="!enteredPin" class="min-h-[44px] text-sm text-gray-300 disabled:opacity-40">ล้างค่า</button>
+        </div>
       </div>
 
       <div class="flex gap-2">
-        <button @click="showPinModal = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
+        <button type="button" @click="showPinModal = false; enteredPin = ''; showAdminPin = false" class="flex-1 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 rounded-xl text-sm font-medium transition">
           ยกเลิก
         </button>
-        <button @click="verifyPin" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition">
+        <button type="submit" :disabled="enteredPin.length !== 4" class="flex-1 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-gray-950 rounded-xl text-sm font-bold transition disabled:opacity-40">
           ยืนยัน
         </button>
       </div>
-    </div>
+    </form>
   </div>
 </template>
 
@@ -562,7 +562,13 @@ const correctPin = 'aaaa' // ⚠️ รหัส PIN สำหรับ Admin Mo
 // State
 const isAdminMode = ref(false)
 const showPinModal = ref(false)
-const enteredPin = ref(['', '', '', ''])
+const enteredPin = ref('')
+const showAdminPin = ref(false)
+const adminPinInput = ref(null)
+const clearAdminPin = () => {
+  enteredPin.value = ''
+  adminPinInput.value?.focus()
+}
 const currentTab = ref('home')
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
@@ -607,14 +613,18 @@ const formDebtorAction = ref('lend')
 const formDebtorName = ref('')
 
 const openAdminMode = () => {
-  enteredPin.value = ['', '', '', '']
+  enteredPin.value = ''
+  showAdminPin.value = false
   showPinModal.value = true
 }
 
 const verifyPin = () => {
-  const pinStr = enteredPin.value.join('')
+  const pinStr = enteredPin.value
+  if (pinStr.length !== 4) return
   if (pinStr === correctPin) {
     financeAdminPin.value = pinStr
+    enteredPin.value = ''
+    showAdminPin.value = false
     showPinModal.value = false
     isLocked.value = false
     isAdminMode.value = true
@@ -624,7 +634,8 @@ const verifyPin = () => {
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
   } else {
     showToast('❌ รหัส PIN ไม่ถูกต้อง', true)
-    enteredPin.value = ['', '', '', '']
+    adminPinInput.value?.focus()
+    adminPinInput.value?.select()
   }
 }
 

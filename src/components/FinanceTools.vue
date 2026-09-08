@@ -11,23 +11,23 @@
   </section>
 
   <Teleport to="body">
-    <div v-if="opened" class="fixed inset-0 z-[70] bg-brand-bg text-white flex flex-col">
-      <header class="bg-brand-yellow text-slate-900 p-4 flex items-center justify-between gap-3">
+    <div v-if="opened" class="finance-screen z-[70] bg-brand-bg text-white flex flex-col" :style="viewportStyle" role="dialog" aria-modal="true" aria-label="จัดการการเงิน">
+      <header class="finance-header bg-brand-yellow text-slate-900 flex items-center justify-between gap-3">
         <button :disabled="saving" @click="close" class="font-bold">‹ กลับ</button>
         <h2 class="font-bold">จัดการการเงิน</h2><span class="w-10"></span>
       </header>
-      <nav class="flex border-b border-slate-700 overflow-x-auto">
-        <button v-for="tab in tabs" :key="tab.key" :disabled="saving" @click="switchTab(tab.key)" class="flex-1 min-w-max p-3 text-sm" :class="active === tab.key ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-slate-400'">{{ tab.label }}</button>
+      <nav class="finance-tabs border-b border-slate-700" aria-label="ส่วนจัดการเงิน">
+        <button v-for="tab in tabs" :key="tab.key" :disabled="saving" @click="switchTab(tab.key)" :aria-current="active === tab.key ? 'page' : undefined" class="text-sm" :class="active === tab.key ? 'text-yellow-300 border-b-2 border-yellow-300' : 'text-slate-400'">{{ tab.label }}</button>
       </nav>
-      <main class="overflow-y-auto flex-1 p-4 pb-24">
-        <div class="max-w-3xl mx-auto space-y-4">
+      <main class="finance-content">
+        <div class="finance-content-inner space-y-4">
           <p v-if="error" role="alert" class="p-3 rounded-xl bg-red-500/10 text-red-300">{{ error }} <button :disabled="loading || saving" @click="reload" class="underline ml-2">ลองใหม่</button></p>
           <p v-if="success" role="status" class="text-green-300">{{ success }}</p>
           <p v-if="loading" class="text-sky-300">กำลังโหลดข้อมูล…</p>
 
           <template v-if="active === 'history' || active === 'due'">
             <h3 class="font-bold">{{ active === 'due' ? 'บิลถึงกำหนดและค้างชำระ' : 'ค้นหารายการทุกเดือน' }}</h3>
-            <div v-if="active === 'history'" class="grid grid-cols-2 gap-3">
+            <div v-if="active === 'history'" class="finance-form-grid">
               <label class="col-span-2 text-xs text-slate-400">ชื่อร้าน หมวด บัญชี หรือโน้ต<input v-model="filters.query" class="field" placeholder="ค้นหารายการ…"></label>
               <label class="text-xs text-slate-400">ประเภท<select v-model="filters.type" class="field"><option value="">ทุกประเภท</option><option v-for="type in recordTypes" :key="type">{{ type }}</option></select></label>
               <label class="text-xs text-slate-400">บัญชี<select v-model="filters.account" class="field"><option value="">ทุกบัญชี</option><option v-for="account in allAccounts" :key="account">{{ account }}</option></select></label>
@@ -35,7 +35,7 @@
               <label class="text-xs text-slate-400">ถึงวันที่<input v-model="filters.to" type="date" class="field"></label>
             </div>
             <p class="text-xs text-slate-400">พบ {{ results.length }} รายการ · เรียงรายการล่าสุดก่อน</p>
-            <div v-for="row in results.slice(0, limit)" :key="row.id" class="rounded-2xl bg-brand-card border border-slate-700/50 p-4 flex gap-3 justify-between">
+            <div v-for="row in results.slice(0, limit)" :key="row.id" class="finance-record rounded-2xl bg-brand-card border border-slate-700/50 p-4">
               <div class="min-w-0"><p class="font-semibold break-words">{{ row.category }}</p><p class="text-xs text-slate-400 mt-1">{{ row.date }} · {{ row.type }}</p><p class="text-xs text-slate-400 mt-1">{{ row.account }}<span v-if="row.type === 'ย้ายเงิน'"> → {{ row.category }}</span></p><p v-if="row.note && row.note !== '-'" class="text-xs text-slate-300 mt-1 break-words">{{ row.note }}</p><p v-if="row.status === 'ยังไม่จ่าย'" class="text-xs text-amber-300 mt-1">ยังไม่จ่าย</p></div>
               <div class="shrink-0 text-right"><strong>{{ money(row.amount) }} ฿</strong><button @click="edit(row)" class="block ml-auto mt-2 text-sm text-sky-300">{{ row.status === 'ยังไม่จ่าย' ? 'แก้ไข / ชำระ' : '✏️ แก้ไข' }}</button></div>
             </div>
@@ -44,7 +44,7 @@
           </template>
 
           <template v-if="active === 'budgets'">
-            <div class="flex items-center justify-between gap-3"><h3 class="font-bold">งบรายเดือน</h3><input v-model="budgetMonth" @change="loadPlan" type="month" class="field max-w-44" aria-label="เดือนของงบ"></div>
+            <div class="finance-month"><h3 class="font-bold">งบรายเดือน</h3><input v-model="budgetMonth" @change="loadPlan" type="month" class="field" aria-label="เดือนของงบ"></div>
             <p class="text-xs text-slate-400">นับรายจ่ายและบิลที่จ่ายแล้ว · ไม่รวมย้ายเงินและให้ยืม · เตือนเมื่อใช้ถึง 80%</p>
             <form @submit.prevent="saveBudget" class="bg-brand-card rounded-2xl p-4 space-y-3">
               <label class="block text-sm">หมวดหมู่<input v-model.trim="budgetDraft.category" required maxlength="120" list="finance-categories" class="field" placeholder="เช่น อาหาร"></label>
@@ -63,7 +63,7 @@
           <template v-if="active === 'recurring'">
             <h3 class="font-bold">รายการประจำทุกเดือน</h3>
             <p class="text-xs text-slate-400">รายรับบันทึกอัตโนมัติ · บิลสร้างเป็นค้างชำระและเตือนในเว็บ · วันที่ 29–31 ใช้วันสุดท้ายหากเดือนนั้นไม่มีวันดังกล่าว</p>
-            <form @submit.prevent="saveRecurring" class="rounded-2xl bg-brand-card p-4 grid grid-cols-2 gap-3">
+            <form @submit.prevent="saveRecurring" class="finance-form-grid rounded-2xl bg-brand-card p-4">
               <label class="col-span-2 text-sm">ประเภท<select v-model="ruleDraft.type" class="field"><option>รายจ่ายต้องชำระต่อเดือน</option><option>รายรับ</option></select></label>
               <label class="col-span-2 text-sm">ชื่อบิลหรือหมวดรายรับ<input v-model.trim="ruleDraft.category" required maxlength="120" class="field" placeholder="เช่น Internet หรือเงินเดือน"></label>
               <label class="text-sm">จำนวนเงิน<input v-model="ruleDraft.amount" required type="number" min="0.01" step="0.01" class="field"></label>
@@ -80,12 +80,12 @@
       </main>
     </div>
 
-    <div v-if="editing" class="fixed inset-0 z-[80] bg-black/70 flex items-center justify-center p-3">
-      <form @submit.prevent="saveEdit" class="bg-brand-bg text-white rounded-2xl border border-slate-700 p-5 w-full max-w-lg max-h-[90dvh] overflow-y-auto space-y-3">
+    <div v-if="editing" class="finance-edit-backdrop z-[80] bg-black/70" :style="viewportStyle" role="dialog" aria-modal="true" aria-label="แก้ไขรายการ">
+      <form @submit.prevent="saveEdit" class="finance-edit-form bg-brand-bg text-white rounded-2xl border border-slate-700 space-y-3">
         <h3 class="font-bold text-lg">แก้ไขรายการ</h3>
         <p v-if="editError" role="alert" class="text-red-300 text-sm">{{ editError }}</p>
         <label class="block text-sm">ประเภท<select v-model="editing.type" class="field"><option v-for="type in recordTypes" :key="type">{{ type }}</option></select></label>
-        <div class="grid grid-cols-2 gap-3"><label class="text-sm">วันที่<input v-model="editing.date" required type="date" class="field"></label><label class="text-sm">จำนวนเงิน<input v-model="editing.amount" required type="number" min="0.01" step="0.01" class="field"></label></div>
+        <div class="finance-form-grid"><label class="text-sm">วันที่<input v-model="editing.date" required type="date" class="field"></label><label class="text-sm">จำนวนเงิน<input v-model="editing.amount" required type="number" min="0.01" step="0.01" class="field"></label></div>
         <label class="block text-sm">{{ editing.type === 'ย้ายเงิน' ? 'บัญชีต้นทาง' : 'บัญชี' }}<select v-model="editing.account" class="field"><option v-if="!allAccounts.includes(editing.account)" :value="editing.account">{{ editing.account }}</option><option v-for="account in allAccounts" :key="account">{{ account }}</option></select></label>
         <label class="block text-sm">{{ editing.type === 'ย้ายเงิน' ? 'บัญชีปลายทาง' : 'หมวดหมู่ / ชื่อคนยืม' }}<select v-if="editing.type === 'ย้ายเงิน'" v-model="editing.category" class="field"><option v-for="account in allAccounts" :key="account">{{ account }}</option></select><input v-else v-model.trim="editing.category" required maxlength="120" class="field"></label>
         <label v-if="editing.type === 'รายจ่ายต้องชำระต่อเดือน'" class="block text-sm">สถานะ<select v-model="editing.status" class="field"><option>ยังไม่จ่าย</option><option>จ่ายแล้ว</option></select></label>
@@ -103,6 +103,14 @@ const props = defineProps({ userId: String, month: String, apiBase: String, auth
 const emit = defineEmits(['changed', 'busy', 'go-bills'])
 const tabs = [{key:'history',label:'🔎 ค้นหา / แก้ไข'}, {key:'budgets',label:'🎯 งบรายเดือน'}, {key:'recurring',label:'🔁 รายการประจำ'}]
 const opened = ref(false), active = ref('history'), loading = ref(false), saving = ref(false)
+const viewportStyle = ref({})
+function syncViewport() {
+  const viewport = window.visualViewport
+  // Preserve browser pinch-zoom; adjust only for the keyboard and browser chrome.
+  viewportStyle.value = viewport && viewport.scale === 1
+    ? { '--finance-height': `${viewport.height}px`, '--finance-top': `${viewport.offsetTop}px` }
+    : {}
+}
 const error = ref(''), success = ref(''), editError = ref(''), editing = ref(null)
 const history = ref([]), budgets = ref([]), rules = ref([]), due = ref([]), limit = ref(50)
 const today = bangkokToday(), budgetMonth = ref(props.month)
@@ -174,13 +182,45 @@ async function saveEdit() {
   catch (e) { if (alive) { if(editing.value) editError.value=e.message; else error.value=e.message } }
   finally { if (alive) saving.value = false }
 }
-onMounted(loadPlan)
-onUnmounted(() => { alive=false; emit('busy',false) })
+onMounted(() => {
+  syncViewport()
+  window.visualViewport?.addEventListener('resize', syncViewport)
+  window.visualViewport?.addEventListener('scroll', syncViewport)
+  void loadPlan()
+})
+onUnmounted(() => {
+  window.visualViewport?.removeEventListener('resize', syncViewport)
+  window.visualViewport?.removeEventListener('scroll', syncViewport)
+  alive=false; emit('busy',false)
+})
 defineExpose({ edit })
 </script>
 
 <style scoped>
-.field { display:block; width:100%; margin-top:.4rem; padding:.7rem; border-radius:.65rem; background:#1e293b; color:#fff; border:1px solid #334155; min-width:0; color-scheme:dark; }
+.finance-screen, .finance-edit-backdrop { position:fixed; top:var(--finance-top, 0px); height:100vh; height:var(--finance-height, 100dvh); box-sizing:border-box; overflow:hidden; }
+.finance-screen { left:50%; transform:translateX(-50%); width:100%; max-width:480px; box-shadow:0 0 0 100vmax rgb(0 0 0 / .45); }
+.finance-header { padding:12px 16px; padding-top:max(12px, env(safe-area-inset-top)); flex-shrink:0; }
+.finance-header button { min-height:44px; padding:0 8px; }
+.finance-tabs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); flex-shrink:0; background:#0b192b; }
+.finance-tabs button { min-width:0; min-height:52px; padding:10px 4px; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
+.finance-content { flex:1; min-height:0; min-width:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding:16px; padding-bottom:max(24px, env(safe-area-inset-bottom)); scroll-padding-block:20px; }
+.finance-content-inner { min-width:0; width:100%; overflow-wrap:anywhere; }
+.finance-form-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; }
+.finance-form-grid > *, label { min-width:0; }
+.finance-month { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 180px); gap:12px; align-items:center; }
+.finance-record { display:grid; grid-template-columns:minmax(0, 1fr); gap:12px; }
+.finance-record > :last-child { min-width:0; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.finance-record button { min-height:44px; margin-top:0; }
+.finance-edit-backdrop { left:0; width:100%; display:flex; justify-content:center; align-items:center; padding:12px; padding-top:max(12px, env(safe-area-inset-top)); padding-bottom:max(12px, env(safe-area-inset-bottom)); }
+.finance-edit-form { width:100%; max-width:456px; min-height:0; max-height:100%; overflow-y:auto; overflow-x:hidden; overscroll-behavior-y:contain; -webkit-overflow-scrolling:touch; padding:16px; overflow-wrap:anywhere; scroll-padding-block:20px; }
+.field { display:block; box-sizing:border-box; width:100%; max-width:100%; min-height:46px; font-size:16px; line-height:1.5; margin-top:.4rem; padding:.7rem; border-radius:.65rem; background:#1e293b; color:#fff; border:1px solid #334155; min-width:0; color-scheme:dark; }
+input[type="date"], input[type="month"] { appearance:none; -webkit-appearance:none; }
+input::-webkit-date-and-time-value { min-height:1.5em; text-align:left; }
+@media (max-width:400px) {
+  .finance-form-grid, .finance-month { grid-template-columns:minmax(0, 1fr); }
+  .finance-form-grid > .col-span-2 { grid-column:1 / -1; }
+  .finance-content { padding-left:12px; padding-right:12px; }
+}
 .field:focus { outline:2px solid #38bdf8; outline-offset:1px; }
 .action { padding:.8rem 1rem; border-radius:.75rem; background:#2563eb; color:white; font-weight:600; }
 button:disabled { opacity:.5; cursor:wait; }

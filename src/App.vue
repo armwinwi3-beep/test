@@ -305,59 +305,69 @@
           <button @click="isSummaryOpen = false" class="text-slate-800 font-bold px-2 py-1 active:scale-90 transition-transform flex items-center gap-1">
             <svg class="w-5 h-5 stroke-current" viewBox="0 0 24 24" fill="none" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg> กลับ
           </button>
-          <div class="font-bold text-lg text-slate-800">📊 สรุปพฤติกรรม</div>
+          <div class="font-bold text-lg text-slate-800">📊 สรุปการเงิน</div>
           <div class="w-16"></div>
         </div>
-        <div class="p-4 overflow-y-auto flex-1 pb-24 bg-brand-bg">
-          <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-5 mb-4 shadow-sm">
-            <h3 class="text-white font-bold mb-4 flex items-center gap-2"><span class="text-xl">💰</span> ยอดเงินคงเหลือแต่ละบัญชี</h3>
-            <div v-for="(bal, acc) in accountBalances" :key="acc" class="flex justify-between text-sm py-2.5 border-b border-slate-700/50 border-dashed last:border-0 hover:bg-slate-800/30 px-2 rounded-lg transition-colors">
-              <span class="text-slate-300">{{ acc }}</span>
-              <span class="font-bold" :class="bal >= 0 ? 'text-green-400' : 'text-red-400'">{{ bal.toLocaleString('th-TH') }} ฿</span>
+        <div class="overflow-y-auto flex-1 bg-brand-bg">
+          <div class="max-w-6xl mx-auto p-4 sm:p-6 pb-24 space-y-6">
+            <div class="flex items-center justify-between gap-3">
+              <div><h2 class="text-xl font-bold">ภาพรวมการเงิน</h2><p class="text-sm text-slate-400 mt-1">{{ monthDisplay }}</p></div>
+              <span class="text-xs text-slate-400">หน่วย: บาท</span>
             </div>
-          </div>
 
-          <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-5 mb-4 shadow-sm">
-            <h3 class="text-white font-bold mb-4 flex items-center gap-2"><span class="text-xl">⚖️</span> ภาพรวมเดือนนี้</h3>
-            <div class="mb-5">
-              <div class="flex justify-between text-sm mb-2"><span class="text-green-400 font-medium">รายรับ</span><span class="text-green-400 font-bold">+{{ totalIncome.toLocaleString('th-TH') }} ฿</span></div>
-              <div class="bg-slate-800 h-3 rounded-full overflow-hidden shadow-inner"><div class="bg-gradient-to-r from-green-600 to-green-400 h-full rounded-full transition-all duration-1000" :style="{ width: incWidth + '%' }"></div></div>
-            </div>
-            <div>
-              <div class="flex justify-between text-sm mb-2"><span class="text-red-400 font-medium">รายจ่าย <span class="text-[10px] text-slate-500">(รวมบิล+ยืม)</span></span><span class="text-red-400 font-bold">-{{ totalExpense.toLocaleString('th-TH') }} ฿</span></div>
-              <div class="bg-slate-800 h-3 rounded-full overflow-hidden shadow-inner"><div class="bg-gradient-to-r from-red-600 to-red-400 h-full rounded-full transition-all duration-1000" :style="{ width: expWidth + '%' }"></div></div>
-            </div>
-            <div class="bg-slate-800/50 p-4 rounded-xl mt-6 flex justify-between text-center items-center border border-slate-700/30">
-              <div class="flex-1">
-                <div class="text-[11px] text-slate-400 mb-1 font-medium">เฉลี่ยรวม (หาร {{ daysDivisor }} วัน)</div>
-                <div class="text-xl font-bold text-yellow-400">{{ avgDailyTotal.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <div class="col-span-2 lg:col-span-1 bg-brand-yellow text-slate-900 rounded-2xl p-5">
+                <p class="text-sm font-semibold">💰 เงินคงเหลือรวม</p>
+                <p class="text-3xl sm:text-4xl font-extrabold tracking-tight mt-3 break-words">{{ summaryMoney(totalBalance) }} <span class="text-base">฿</span></p>
+                <p class="text-xs mt-3 text-slate-700">ยอดสะสมทุกบัญชี</p>
               </div>
-              <div class="w-px h-10 bg-slate-700 mx-2"></div>
-              <div class="flex-1">
-                <div class="text-[11px] text-slate-400 mb-1 font-medium">รายจ่ายทั่วไป <span class="text-sky-400">(ไม่รวมบิล)</span></div>
-                <div class="text-xl font-bold text-sky-400">{{ avgDailyGeneral.toLocaleString('th-TH', {minimumFractionDigits: 2}) }} ฿</div>
+              <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-4 sm:p-5">
+                <p class="text-sm text-slate-300">💸 รายจ่ายเดือนนี้</p>
+                <p class="text-xl sm:text-3xl font-bold text-red-400 mt-3 break-words">{{ summaryMoney(totalExpense) }} <span class="text-sm">฿</span></p>
+                <p class="text-xs text-slate-400 mt-3">รวมบิลที่จ่ายแล้วและเงินให้ยืม</p>
+              </div>
+              <div class="bg-brand-card border border-slate-700/50 rounded-2xl p-4 sm:p-5">
+                <p class="text-sm text-slate-300">📅 ใช้เฉลี่ยต่อวัน</p>
+                <p class="text-xl sm:text-3xl font-bold text-sky-400 mt-3 break-words">{{ summaryMoney(avgDailyTotal) }} <span class="text-sm">฿</span></p>
+                <p class="text-xs text-slate-400 mt-3">รายจ่ายเดือนนี้ ÷ {{ daysDivisor }} วัน</p>
               </div>
             </div>
-          </div>
 
-          <div class="bg-gradient-to-br from-blue-900 to-blue-700 rounded-2xl p-5 shadow-lg mb-5 text-white border border-blue-600/30 relative overflow-hidden">
-            <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">💡</div>
-            <h3 class="font-bold mb-3 text-blue-100 relative z-10">วิเคราะห์พฤติกรรม</h3>
-            <p class="text-sm font-light leading-relaxed relative z-10" v-html="insightText"></p>
-          </div>
+            <section class="bg-brand-card border border-slate-700/50 rounded-2xl p-5">
+              <h3 class="font-bold mb-4">รายรับและรายจ่าย</h3>
+              <div class="grid sm:grid-cols-3 gap-5">
+                <div><div class="flex justify-between gap-2 text-sm"><span class="text-slate-300">รับเข้า</span><strong class="text-green-400">{{ summaryMoney(totalIncome) }} ฿</strong></div><div class="h-2 bg-slate-800 rounded-full mt-3 overflow-hidden"><div class="h-full bg-green-400 rounded-full" :style="{width: incWidth + '%'}"></div></div></div>
+                <div><div class="flex justify-between gap-2 text-sm"><span class="text-slate-300">จ่ายออก</span><strong class="text-red-400">{{ summaryMoney(totalExpense) }} ฿</strong></div><div class="h-2 bg-slate-800 rounded-full mt-3 overflow-hidden"><div class="h-full bg-red-400 rounded-full" :style="{width: expWidth + '%'}"></div></div></div>
+                <div class="rounded-xl bg-slate-800/60 p-3 sm:-mt-2"><p class="text-xs text-slate-300">{{ totalIncome >= totalExpense ? 'รับมากกว่าจ่าย' : 'จ่ายมากกว่ารับ' }}</p><p class="text-xl font-bold mt-1" :class="totalIncome >= totalExpense ? 'text-green-400' : 'text-red-400'">{{ summaryMoney(Math.abs(totalIncome - totalExpense)) }} ฿</p></div>
+              </div>
+              <p class="text-xs text-slate-400 mt-4">เฉพาะรายจ่ายทั่วไป เฉลี่ย {{ summaryMoney(avgDailyGeneral) }} ฿/วัน · ไม่รวมบิลและเงินให้ยืม</p>
+            </section>
 
-          <h3 class="text-slate-400 font-bold mb-4 ml-1">หมวดหมู่ยอดฮิต</h3>
-          <div v-for="(cat, index) in sortedCategories" :key="cat.name" class="mb-4 bg-brand-card p-3 rounded-xl border border-slate-800/50">
-            <div class="flex justify-between text-sm mb-2 items-center">
-              <span class="font-bold text-white flex items-center gap-2">
-                <span class="text-xs w-5 h-5 bg-slate-700 text-slate-300 rounded-full flex items-center justify-center">{{ index + 1 }}</span>
-                {{ cat.name }} 
-              </span>
-              <span class="text-white font-bold">{{ cat.amount.toLocaleString('th-TH') }} ฿</span>
+            <div class="grid lg:grid-cols-2 gap-6 items-start">
+              <section>
+                <h3 class="font-bold mb-3">เงินอยู่ที่ไหน</h3>
+                <div v-if="Object.keys(accountBalances).length" class="grid grid-cols-2 gap-3">
+                  <div v-for="(bal, acc) in accountBalances" :key="acc" class="bg-brand-card border border-slate-700/50 rounded-2xl p-4 min-w-0">
+                    <p class="text-sm text-slate-300 break-words">{{ summaryAccountIcon(acc) }} {{ acc }}</p>
+                    <p class="text-xl font-bold mt-2 break-words" :class="bal < 0 ? 'text-red-400' : 'text-white'">{{ summaryMoney(bal) }} <span class="text-xs text-slate-400">฿</span></p>
+                  </div>
+                </div>
+                <p v-else class="bg-brand-card rounded-2xl p-6 text-sm text-slate-400">ยังไม่มีรายการบัญชี</p>
+              </section>
+
+              <section class="bg-brand-card border border-slate-700/50 rounded-2xl p-5">
+                <h3 class="font-bold">ใช้เงินไปกับอะไร</h3>
+                <p class="text-xs text-slate-400 mt-1 mb-5">เรียงจากมากไปน้อย · สัดส่วนของรายจ่ายเดือนนี้</p>
+                <p v-if="!sortedCategories.length" class="py-6 text-center text-sm text-slate-400">ยังไม่มีรายจ่ายในเดือนนี้</p>
+                <div v-for="(cat, index) in (showAllSummaryCategories ? sortedCategories : sortedCategories.slice(0, 5))" :key="cat.name" class="mb-5 last:mb-0">
+                  <div class="flex justify-between gap-3 text-sm items-start"><span class="min-w-0 break-words"><span class="text-slate-500 mr-2">{{ index + 1 }}</span>{{ cat.name }}</span><span class="font-semibold text-right shrink-0">{{ summaryMoney(cat.amount) }} ฿<span class="block text-xs font-normal text-slate-400 mt-1">{{ cat.percent }}%</span></span></div>
+                  <div class="h-2 rounded-full bg-slate-800 mt-2 overflow-hidden"><div class="h-full rounded-full bg-brand-yellow" :style="{width: Math.min(100, Math.max(0, cat.percent)) + '%'}"></div></div>
+                </div>
+                <button v-if="sortedCategories.length > 5" @click="showAllSummaryCategories = !showAllSummaryCategories" class="w-full text-sm text-sky-400 py-2 mt-2 rounded-lg hover:bg-slate-800">{{ showAllSummaryCategories ? 'แสดง 5 อันดับแรก' : 'ดูทั้งหมด (' + sortedCategories.length + ' หมวด)' }}</button>
+              </section>
             </div>
-            <div class="flex items-center gap-3">
-              <div class="bg-slate-800 h-2 rounded-full overflow-hidden flex-1"><div class="bg-brand-yellow h-full rounded-full" :style="{ width: cat.percent + '%' }"></div></div>
-              <span class="text-[10px] text-slate-400 w-16 text-right">เฉลี่ย {{ cat.avg.toLocaleString('th-TH',{maximumFractionDigits: 0}) }} /วัน</span>
+            <div v-if="sortedCategories.length" class="rounded-2xl border border-sky-500/20 bg-sky-500/10 p-4 text-sm text-slate-300 leading-relaxed">
+              💡 ใช้จ่ายกับ <strong class="text-white">{{ sortedCategories[0].name }}</strong> มากที่สุด รวม <strong class="text-white">{{ summaryMoney(sortedCategories[0].amount) }} ฿</strong> คิดเป็น {{ sortedCategories[0].percent }}% ของรายจ่ายเดือนนี้
             </div>
           </div>
         </div>
@@ -844,6 +854,9 @@ watch(calendarGrid, (newGrid) => {
 }, { immediate: true })
 
 // Summary Calculations
+const showAllSummaryCategories = ref(false)
+const summaryMoney = (value) => Number(value || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const summaryAccountIcon = (account) => ({ 'กสิกร': '🟢', 'กรุงไทย': '🔵', TrueMoney: '🟠', ShopeeWallet: '🛍️', 'เงินสด': '💵' }[account] || '💳')
 const daysDivisor = computed(() => {
   const daysInMonth = new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate()
   return (viewDate.value.getMonth() === currentDate.getMonth() && viewDate.value.getFullYear() === currentDate.getFullYear()) ? currentDate.getDate() : daysInMonth
@@ -865,17 +878,8 @@ const sortedCategories = computed(() => {
   })
   return Object.entries(catMap).sort((a,b) => b[1]-a[1]).map(c => {
     let div = ['ShopeePay', 'SEasyCash', 'SPayExtra', 'Internet', 'ค่าทำฟัน', 'ประกันสังคม', 'บิลอื่นๆ'].includes(c[0]) ? new Date(viewDate.value.getFullYear(), viewDate.value.getMonth() + 1, 0).getDate() : daysDivisor.value
-    return { name: c[0], amount: c[1], percent: Math.round((c[1]/totalExpense.value)*100), avg: c[1]/Math.max(1, div) }
+    return { name: c[0], amount: c[1], percent: (totalExpense.value > 0 ? Math.round((c[1]/totalExpense.value)*100) : 0), avg: c[1]/Math.max(1, div) }
   })
-})
-
-const insightText = computed(() => {
-  if (totalGeneralExp.value === 0) return `เดือนนี้คุณยังไม่มีการใช้จ่ายเลยครับ ดีเยี่ยมมากๆ! 🎉`
-  const top = sortedCategories.value[0]
-  let txt = `คุณหมดเงินไปกับ <b>${top.name}</b> เยอะที่สุด คิดเป็น <b>${top.percent}%</b> ของรายจ่ายทั้งหมด`
-  if (totalIncome.value > 0 && totalExpense.value > totalIncome.value) txt += `<br><span class="text-red-400 mt-1 inline-block">⚠️ ระวัง: เดือนนี้ใช้จ่ายเกินรายรับไปแล้วนะ!</span>`
-  else if (totalIncome.value > 0 && totalExpense.value <= totalIncome.value * 0.5) txt += `<br><span class="text-green-400 mt-1 inline-block">✨ ยอดเยี่ยม: ใช้เงินไม่ถึงครึ่งของรายรับ มีเงินเก็บแน่นอน!</span>`
-  return txt
 })
 
 // Action Methods

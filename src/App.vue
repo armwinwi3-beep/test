@@ -16,7 +16,7 @@
     <!-- 🌟 ส่วนเนื้อหาหลัก 🌟 -->
     <main class="flex-1 overflow-y-auto pb-24 scroll-smooth">
       <div v-show="currentTab === 'home'" class="px-4 pt-4">
-        <FinanceTools v-if="lineDisplayName || isAdminMode" ref="financeTools" :key="userId" :user-id="userId" :month="financeMonth" :api-base="API_BASE_URL" :auth-headers="financeHeaders" :revision="financeRevision" @changed="fetchMonthData" @busy="financeBusy = $event" />
+        <FinanceTools v-if="lineDisplayName || isAdminMode" ref="financeTools" :key="userId" :user-id="userId" :month="financeMonth" :api-base="API_BASE_URL" :auth-headers="financeHeaders" :revision="financeRevision" @changed="fetchMonthData" @busy="financeBusy = $event" @go-bills="currentTab = 'bills'" />
       </div>
       
       <Transition name="fade" mode="out-in">

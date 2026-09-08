@@ -6,7 +6,7 @@
     <button v-if="alerts.length" @click="open('budgets')" class="w-full rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-left text-sm text-amber-200">
       ⚠️ {{ alerts.map(b => `${b.category} ใช้ ${b.percent}%`).join(' · ') }}
     </button>
-    <button v-if="due.length" @click="open('due')" class="w-full rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-left text-sm text-red-200">🔔 มีบิลถึงกำหนดหรือค้างชำระ {{ due.length }} รายการ · ดูและชำระ</button>
+    <button v-if="due.length" @click="$emit('go-bills')" class="w-full rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-left text-sm text-red-200">🔔 มีบิลถึงกำหนดหรือค้างชำระ {{ due.length }} รายการ · ดูและชำระ</button>
     <div v-if="budgets.length" class="rounded-xl bg-brand-card p-3 text-sm text-slate-300">งบ {{ monthLabel }} · เหลือรวม <strong :class="remaining < 0 ? 'text-red-400' : 'text-green-400'">{{ money(remaining) }} ฿</strong></div>
   </section>
 
@@ -100,7 +100,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { accounts, recordTypes, money, toISO, bangkokToday, filterRecords } from '../finance-tools.js'
 const props = defineProps({ userId: String, month: String, apiBase: String, authHeaders: Function, revision: Number })
-const emit = defineEmits(['changed', 'busy'])
+const emit = defineEmits(['changed', 'busy', 'go-bills'])
 const tabs = [{key:'history',label:'🔎 ค้นหา / แก้ไข'}, {key:'budgets',label:'🎯 งบรายเดือน'}, {key:'recurring',label:'🔁 รายการประจำ'}]
 const opened = ref(false), active = ref('history'), loading = ref(false), saving = ref(false)
 const error = ref(''), success = ref(''), editError = ref(''), editing = ref(null)

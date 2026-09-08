@@ -13,9 +13,27 @@
       </div>
     </Transition>
 
+    <header class="account-header">
+      <div class="min-w-0"><p class="text-xs text-slate-400">บันทึกเงินของคุณ</p><p class="text-lg font-bold tracking-tight">Moneybase</p></div>
+      <div v-if="lineDisplayName && !isAdminMode" :title="lineDisplayName" class="account-badge"><span aria-hidden="true">👤</span><span class="truncate">{{ lineDisplayName }}</span></div>
+      <button v-else @click="openAdminMode" class="account-badge"><span aria-hidden="true">🔐</span><span>{{ isAdminMode ? 'แอดมิน' : 'เข้าสู่ระบบ' }}</span></button>
+    </header>
+
     <!-- 🌟 ส่วนเนื้อหาหลัก 🌟 -->
-    <main class="flex-1 overflow-y-auto pb-24 scroll-smooth">
+    <main class="app-scroll flex-1 min-h-0 overflow-y-auto scroll-smooth">
       <div v-show="currentTab === 'home'" class="px-4 pt-4">
+        <section class="balance-card mb-5">
+          <div class="flex items-center justify-between gap-3 mb-5">
+            <div class="flex items-center gap-2 text-sm font-semibold"><button @click="changeMonth(-1)" aria-label="เดือนก่อนหน้า" class="month-arrow">‹</button><span>{{ monthDisplay }}</span><button @click="changeMonth(1)" aria-label="เดือนถัดไป" class="month-arrow">›</button></div>
+            <button @click="isSummaryOpen = true" class="rounded-full bg-slate-900 text-white px-4 py-2 text-xs font-semibold">ดูสรุป ↗</button>
+          </div>
+          <p class="text-sm text-slate-700">ยอดเงินคงเหลือรวม</p>
+          <p class="balance-amount mt-1">{{ summaryMoney(totalBalance) }} <span class="text-lg font-medium">฿</span></p>
+          <div class="grid grid-cols-2 gap-4 mt-5 pt-4 border-t border-slate-900/15">
+            <div><p class="text-xs text-slate-700">รายรับเดือนนี้</p><p class="text-lg font-bold mt-1 text-emerald-900 break-words">{{ summaryMoney(totalIncome) }} ฿</p></div>
+            <div><p class="text-xs text-slate-700">รายจ่ายเดือนนี้</p><p class="text-lg font-bold mt-1 text-red-700 break-words">{{ summaryMoney(totalExpense) }} ฿</p></div>
+          </div>
+        </section>
         <FinanceTools v-if="lineDisplayName || isAdminMode" ref="financeTools" :key="userId" :user-id="userId" :month="financeMonth" :api-base="API_BASE_URL" :auth-headers="financeHeaders" :revision="financeRevision" @changed="fetchMonthData" @busy="financeBusy = $event" @go-bills="currentTab = 'bills'" />
       </div>
       
@@ -23,29 +41,7 @@
         
         <!-- 🏠 แท็บหน้าแรก -->
         <section v-if="currentTab === 'home'" key="home" class="p-4">
-          <div class="bg-brand-yellow text-slate-800 p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] relative mb-4 transition-transform hover:scale-[1.02]">
-            <div class="flex items-center gap-4 text-sky-700 font-bold mb-4 text-lg">
-              <button @click="changeMonth(-1)" class="hover:opacity-70 px-2 select-none active:scale-75 transition-transform">&lt;</button>
-              <span>📅 {{ monthDisplay }}</span>
-              <button @click="changeMonth(1)" class="hover:opacity-70 px-2 select-none active:scale-75 transition-transform">&gt;</button>
-            </div>
-            <div class="flex justify-between items-start">
-              <div class="flex flex-col gap-2">
-                <div>
-                  <p class="text-sm font-medium text-slate-600">ยอดเงินคงเหลือรวม</p>
-                  <p class="text-3xl font-extrabold leading-tight tracking-tight">{{ totalBalance.toLocaleString('th-TH') }} ฿</p>
-                </div>
-                <div>
-                  <p class="text-sm font-medium text-slate-600">ยอดใช้จ่ายเดือนนี้</p>
-                  <p class="text-xl font-bold text-red-500">{{ totalExpense.toLocaleString('th-TH') }} ฿</p>
-                </div>
-              </div>
-              <button @click="isSummaryOpen = true" class="bg-blue-700 text-white px-4 py-2.5 rounded-full text-sm font-bold flex items-center gap-1.5 hover:bg-blue-800 transition-all active:scale-90 shadow-lg">
-                <svg class="w-4 h-4 fill-white" viewBox="0 0 24 24"><path d="M11 2v20c-5.07-.5-9-4.79-9-10s3.93-9.5 9-10zm2.03 0v8.99H22c-.47-4.74-4.24-8.52-8.97-8.99zm0 11.01V22c4.74-.47 8.5-4.25 8.97-8.99h-8.97z"/></svg>
-                สรุป
-              </button>
-            </div>
-          </div>
+          <h2 class="text-sm font-semibold text-slate-300 mb-3">รายการประจำเดือน</h2>
 
           <div v-if="isLoading" class="flex flex-col items-center justify-center py-16 text-sky-400 gap-3">
             <svg class="animate-spin h-10 w-10 text-brand-yellow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -57,38 +53,38 @@
             <span>ยังไม่มีรายการในเดือนนี้</span>
           </div>
           
-          <div v-else v-for="group in groupedRecords" :key="group.date" class="flex mt-3 border-t border-slate-800/50 pt-3">
-            <div class="w-16 text-center pt-3 border-l-4 border-brand-yellow text-brand-yellow">
+          <div v-else v-for="group in groupedRecords" :key="group.date" class="transaction-day mt-4">
+            <div class="day-heading">
               <div class="text-[10px] uppercase tracking-wider font-bold opacity-80">วันที่</div>
               <div class="text-2xl font-black">{{ group.day }}</div>
             </div>
-            <div class="flex-1 bg-brand-card p-4 rounded-2xl shadow-sm border border-slate-700/30">
+            <div class="min-w-0 bg-brand-card p-4 rounded-2xl border border-slate-700/40">
               <div class="flex justify-end gap-3 border-b border-slate-700/50 pb-2 mb-3 text-xs font-semibold tracking-wide">
                 <span v-if="group.expense > 0" class="text-red-400 bg-red-400/10 px-2 py-0.5 rounded">↓ {{ group.expense.toLocaleString('th-TH') }}</span>
                 <span v-if="group.income > 0" class="text-green-400 bg-green-400/10 px-2 py-0.5 rounded">↑ {{ group.income.toLocaleString('th-TH') }}</span>
               </div>
               
-              <div v-for="item in group.items" :key="item.id" class="flex justify-between items-center mb-4 last:mb-0 group">
+              <div v-for="item in group.items" :key="item.id" class="transaction-row">
                 <div>
-                  <p class="text-white font-medium text-sm">
+                  <p class="text-white font-medium text-sm break-words">
                     <span v-if="item.type === 'ย้ายเงิน'">🔄 ย้ายเงิน</span>
                     <span v-else-if="item.type === 'ให้ยืมเงิน'">📤 ให้ยืม: {{ item.category }}</span>
                     <span v-else-if="item.type === 'ได้คืนจากลูกหนี้'">📥 ได้คืนจาก: {{ item.category }}</span>
                     <span v-else>{{ item.category }}</span>
                     <span class="text-[10px] text-slate-400 ml-2 font-normal bg-slate-800 px-1.5 py-0.5 rounded" v-if="item.time && item.time !== '-'">{{ item.time.substring(0,5) }} น.</span>
                   </p>
-                  <p class="text-slate-400 text-xs mt-1">
+                  <p class="text-slate-400 text-xs mt-1 break-words">
                     <template v-if="item.type === 'ย้ายเงิน'">{{ item.account }} ➡️ {{ item.category }}</template>
                     <template v-else>{{ item.account }}</template>
                     <span v-if="item.note && item.note !== '-'" class="italic text-slate-300"> ({{ item.note }})</span>
                   </p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="transaction-actions">
                   <span class="font-bold text-sm tracking-wide" :class="isExpense(item.type) ? 'text-red-400' : (isIncome(item.type) ? 'text-green-400' : 'text-yellow-400')">
-                    {{ isExpense(item.type) ? '-' : (isIncome(item.type) ? '+' : '') }}{{ item.amount.toLocaleString('th-TH') }}
+                    {{ isExpense(item.type) ? '-' : (isIncome(item.type) ? '+' : '') }}{{ summaryMoney(item.amount) }}
                   </span>
-                  <button @click="financeTools?.edit(item)" aria-label="แก้ไขรายการ" class="text-sky-400 p-1 rounded-lg">✏️</button>
-                  <button @click="deleteRecord(item)" class="text-slate-600 hover:text-red-500 active:scale-75 transition-all p-1 bg-slate-800/50 hover:bg-red-500/10 rounded-lg">🗑️</button>
+                  <button @click="financeTools?.edit(item)" aria-label="แก้ไขรายการ" class="row-action text-sky-300">✎</button>
+                  <button @click="deleteRecord(item)" aria-label="ลบรายการ" class="row-action text-slate-400 hover:text-red-400">×</button>
                 </div>
               </div>
             </div>
@@ -483,8 +479,8 @@
 
     <!-- 🌟 ปุ่มลอย (FAB) ซ่อนออโต้เมื่ออยู่หน้าคนยืมและบิล 🌟 -->
     <Transition name="fade">
-      <div v-if="!isFormOpen && !isSummaryOpen && (currentTab === 'home' || currentTab === 'calendar')" class="fixed bottom-[85px] w-full max-w-[480px] flex justify-center z-30 pointer-events-none">
-        <button @click="openForm('expense')" class="pointer-events-auto bg-brand-blue text-white px-7 py-3.5 rounded-full font-bold shadow-[0_8px_30px_rgba(0,102,255,0.4)] flex items-center gap-2 hover:bg-blue-500 active:scale-90 transition-all hover:-translate-y-1">
+      <div v-if="!isFormOpen && !isSummaryOpen && (currentTab === 'home' || currentTab === 'calendar')" class="entry-dock shrink-0 flex px-4 py-2 bg-brand-bg border-t border-slate-700/40">
+        <button @click="openForm('expense')" class="w-full bg-brand-blue text-white px-5 py-3 rounded-xl font-semibold flex justify-center items-center gap-2 hover:bg-blue-500">
           <svg class="w-5 h-5 stroke-white fill-none stroke-[2.5]" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           จดเพิ่ม
         </button>
@@ -493,7 +489,7 @@
 
     <!-- 🌟 Bottom Nav แบบ Smooth -->
     <Transition name="fade">
-      <nav v-if="!isFormOpen && !isSummaryOpen" class="bg-white text-slate-400 h-[65px] pb-safe flex fixed bottom-0 w-full max-w-[480px] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-40 rounded-t-3xl">
+      <nav v-if="!isFormOpen && !isSummaryOpen" class="bottom-navigation bg-white text-slate-400 flex shrink-0 w-full">
         <div @click="currentTab = 'home'" :class="{'text-brand-blue': currentTab === 'home'}" class="flex-1 flex flex-col items-center justify-center cursor-pointer transition-all active:scale-75 hover:bg-slate-50 rounded-tl-3xl relative">
           <div v-if="currentTab === 'home'" class="absolute top-0 w-8 h-1 bg-brand-blue rounded-b-full"></div>
           <svg class="w-6 h-6 mb-1 stroke-current fill-none stroke-[2.5] transition-transform" :class="{'scale-110': currentTab === 'home'}" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -517,17 +513,6 @@
       </nav>
     </Transition>
   </div>
-
-  <!-- แสดงชื่อเจ้าของบัญชี LINE ที่กำลังใช้งาน -->
-  <div v-if="lineDisplayName && !isAdminMode" :title="lineDisplayName" class="relative z-10 mx-4 mt-3 mb-2 self-endmax-w-[calc(100vw-1.5rem)] bg-gray-800/80 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md flex items-center gap-1.5">
-    <span aria-hidden="true">👤</span>
-    <span class="truncate">{{ lineDisplayName }}</span>
-  </div>
-
-  <!-- ปุ่มเปิดหน้าใส่ PIN สำหรับเข้าโหมด Admin บนเว็บ -->
-  <button v-else @click="openAdminMode" class="relative z-10 mx-4 mt-3 mb-2 self-end bg-gray-800/80 hover:bg-gray-700 text-yellow-400 border border-yellow-500/30 px-3 py-1.5 rounded-xl text-xs font-medium shadow-lg backdrop-blur-md transition flex items-center gap-1.5">
-    <span>🔐</span> โหมดแอดมิน
-  </button>
 
   <!-- 🔐 Modal ใส่ PIN แอดมิน 4 ตัว -->
   <div v-if="showPinModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">

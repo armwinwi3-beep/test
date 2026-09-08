@@ -1,6 +1,10 @@
 <template>
   <div class="flex flex-col h-full relative font-sans bg-brand-bg text-white overflow-hidden">
     
+    <div v-if="updateState" role="status" aria-live="polite" class="fixed bottom-24 left-4 right-4 mx-auto max-w-md z-[10000] rounded-2xl bg-sky-950 border border-sky-400/50 px-4 py-3 text-sm text-white shadow-xl">
+      <strong class="block">✨ มีเวอร์ชันใหม่</strong>
+      <span class="block mt-1 text-sky-100">{{ updateState === 'updating' ? 'กำลังรีเฟรชเพื่ออัปเดตใน 3 วินาที…' : 'จะอัปเดตอัตโนมัติเมื่อคุณทำรายการเสร็จ' }}</span>
+    </div>
     <!-- แจ้งเตือน Toast -->
     <Transition name="toast">
       <div v-if="toastMsg" class="fixed top-safe mt-5 left-1/2 -translate-x-1/2 px-5 py-2 rounded-full font-semibold shadow-xl z-[9999] whitespace-nowrap flex items-center gap-2"
@@ -466,7 +470,7 @@
             <input type="text" v-model="formNote" placeholder="📝 เพิ่มโน้ต (ทางเลือก)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
           </div>
 
-          <button @click="saveRecord" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg mt-auto active:scale-95 transition-all shadow-lg flex justify-center items-center gap-2">
+          <button :disabled="pendingWrites > 0" @click="saveRecord" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg mt-auto active:scale-95 transition-all shadow-lg flex justify-center items-center gap-2">
             บันทึกข้อมูล
           </button>
         </div>
@@ -555,8 +559,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import liff from '@line/liff'
+import { createUpdateMonitor } from './update-monitor.js'
 
 // Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
@@ -572,6 +577,8 @@ const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
 const isLoading = ref(true)
 const userId = ref('admin')
+const pendingWrites = ref(0)
+const updateState = ref('')
 const lineDisplayName = ref('')
 const records = ref([])
 const totalBalance = ref(0)
@@ -931,6 +938,7 @@ const fetchMonthData = async () => {
 }
 
 const deleteRecord = async (item) => {
+  pendingWrites.value++
   showToast("🗑️ กำลังลบข้อมูล...")
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
@@ -947,10 +955,11 @@ const deleteRecord = async (item) => {
     }
   } catch (e) { 
     showToast('❌ ขาดการเชื่อมต่อ', true) 
-  }
+  } finally { pendingWrites.value-- }
 }
 
 const openForm = (type) => {
+  if (pendingWrites.value > 0) return
   formType.value = type
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''
   formCategory.value = ''; formSourceAcc.value = ''; formDestAcc.value = ''
@@ -966,6 +975,7 @@ const payUnpaidBill = (b) => {
 }
 
 const saveRecord = async () => {
+  if (pendingWrites.value > 0) return
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
   
   let payload = { 
@@ -996,16 +1006,66 @@ const saveRecord = async () => {
   }
 
   showToast("⏳ กำลังบันทึก...")
-  isFormOpen.value = false
+  pendingWrites.value++
   try {
     const res = await fetch(`${API_BASE_URL}/api/add`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     })
     const data = await res.json()
-    if (data.status === 'success') { showToast("✅ บันทึกสำเร็จ"); fetchMonthData() }
+    if (data.status === 'success') { isFormOpen.value = false; showToast("✅ บันทึกสำเร็จ"); fetchMonthData() }
     else showToast('❌ ' + data.message, true)
   } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
+  finally { pendingWrites.value-- }
 }
+
+// Automatic updates: keep drafts and requests intact until the app is idle.
+let updateMonitor
+let updateInterval
+const isEditingInput = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+const checkForUpdate = () => { if (document.visibilityState === 'visible') void updateMonitor?.check() }
+const reconsiderUpdate = () => updateMonitor?.reconsider()
+watch([isFormOpen, showPinModal, pendingWrites, isLoading, simulatedIncomeInput, simulatedIncome], reconsiderUpdate, { flush: 'sync' })
+onMounted(() => {
+  if (!import.meta.env.PROD) return
+  const origin = __UPDATE_ORIGIN__ || window.location.origin
+  updateMonitor = createUpdateMonitor({
+    currentVersion: __APP_VERSION__,
+    versionUrl: new URL('/version.json', origin).href,
+    canReload: () => document.visibilityState === 'visible' && !isFormOpen.value && !showPinModal.value && !isLoading.value && pendingWrites.value === 0 && !isEditingInput() && !simulatedIncomeInput.value && !simulatedIncome.value,
+    onState: (state) => { updateState.value = state },
+    fetchVersion: async (url) => {
+      const controller = new AbortController()
+      const timeout = window.setTimeout(() => controller.abort(), 10000)
+      try {
+        const response = await fetch(url, { cache: 'no-store', signal: controller.signal })
+        if (!response.ok) throw new Error('Version unavailable')
+        return await response.json()
+      } finally { window.clearTimeout(timeout) }
+    },
+    readAttempt: () => sessionStorage.getItem('app-update-attempt'),
+    writeAttempt: (version) => sessionStorage.setItem('app-update-attempt', version),
+    reload: () => {
+      const destination = new URL(window.location.pathname + window.location.search + window.location.hash, origin)
+      if (destination.href === window.location.href) window.location.reload()
+      else window.location.replace(destination.href)
+    },
+  })
+  updateInterval = window.setInterval(checkForUpdate, 60000)
+  document.addEventListener('visibilitychange', handleUpdateVisibility)
+  window.addEventListener('focus', checkForUpdate)
+  window.addEventListener('online', checkForUpdate)
+  document.addEventListener('focusin', reconsiderUpdate)
+  checkForUpdate()
+})
+function handleUpdateVisibility() { reconsiderUpdate(); checkForUpdate() }
+onUnmounted(() => {
+  updateMonitor?.dispose()
+  window.clearInterval(updateInterval)
+  document.removeEventListener('visibilitychange', handleUpdateVisibility)
+  window.removeEventListener('focus', checkForUpdate)
+  window.removeEventListener('online', checkForUpdate)
+  document.removeEventListener('focusin', reconsiderUpdate)
+})
 
 // Lifecycle Hooks
 onMounted(async () => {

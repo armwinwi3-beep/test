@@ -562,6 +562,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import liff from '@line/liff'
 import { createUpdateMonitor } from './update-monitor.js'
+import { useCalendarSelection } from './calendar-selection.js'
 
 // Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
@@ -588,7 +589,6 @@ const accountBalances = ref({})
 const debtorsData = ref({})
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
-const selectedDayInfo = ref(null)
 const isLocked = ref(false)
 const viewDate = ref(new Date())
 const currentDate = new Date()
@@ -838,27 +838,7 @@ const calendarGrid = computed(() => {
   return grid
 })
 
-const openDayInfo = (dayObj) => {
-  if (!dayObj.empty) selectedDayInfo.value = dayObj
-}
-
-watch(viewDate, () => {
-  selectedDayInfo.value = null
-})
-
-watch(calendarGrid, (newGrid) => {
-  if (!selectedDayInfo.value) {
-    const todayNode = newGrid.find(d => d.isToday)
-    if (todayNode) {
-      selectedDayInfo.value = todayNode
-    } else {
-      const availableDays = newGrid.filter(d => !d.empty && d.data)
-      if (availableDays.length > 0) {
-        selectedDayInfo.value = availableDays[availableDays.length - 1]
-      }
-    }
-  }
-}, { immediate: true })
+const { selectedDayInfo, openDayInfo } = useCalendarSelection(calendarGrid, viewDate)
 
 // Summary Calculations
 const showAllSummaryCategories = ref(false)

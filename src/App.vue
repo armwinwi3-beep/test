@@ -15,6 +15,9 @@
 
     <!-- 🌟 ส่วนเนื้อหาหลัก 🌟 -->
     <main class="flex-1 overflow-y-auto pb-24 scroll-smooth">
+      <div v-show="currentTab === 'home'" class="px-4 pt-4">
+        <FinanceTools v-if="lineDisplayName || isAdminMode" ref="financeTools" :key="userId" :user-id="userId" :month="financeMonth" :api-base="API_BASE_URL" :auth-headers="financeHeaders" :revision="financeRevision" @changed="fetchMonthData" @busy="financeBusy = $event" />
+      </div>
       
       <Transition name="fade" mode="out-in">
         
@@ -84,6 +87,7 @@
                   <span class="font-bold text-sm tracking-wide" :class="isExpense(item.type) ? 'text-red-400' : (isIncome(item.type) ? 'text-green-400' : 'text-yellow-400')">
                     {{ isExpense(item.type) ? '-' : (isIncome(item.type) ? '+' : '') }}{{ item.amount.toLocaleString('th-TH') }}
                   </span>
+                  <button @click="financeTools?.edit(item)" aria-label="แก้ไขรายการ" class="text-sky-400 p-1 rounded-lg">✏️</button>
                   <button @click="deleteRecord(item)" class="text-slate-600 hover:text-red-500 active:scale-75 transition-all p-1 bg-slate-800/50 hover:bg-red-500/10 rounded-lg">🗑️</button>
                 </div>
               </div>
@@ -561,6 +565,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import liff from '@line/liff'
+import FinanceTools from './components/FinanceTools.vue'
 import { createUpdateMonitor } from './update-monitor.js'
 import { useCalendarSelection } from './calendar-selection.js'
 
@@ -579,6 +584,12 @@ const isSummaryOpen = ref(false)
 const isLoading = ref(true)
 const userId = ref('admin')
 const pendingWrites = ref(0)
+const financeTools = ref(null)
+const financeBusy = ref(false)
+const financeRevision = ref(0)
+const financeAdminPin = ref('')
+const financeMonth = computed(() => viewDate.value.getFullYear() + '-' + String(viewDate.value.getMonth() + 1).padStart(2, '0'))
+const financeHeaders = () => isAdminMode.value ? { 'X-Admin-Pin': financeAdminPin.value } : { Authorization: 'Bearer ' + (liff.getAccessToken() || '') }
 const updateState = ref('')
 const lineDisplayName = ref('')
 const records = ref([])
@@ -618,6 +629,7 @@ const openAdminMode = () => {
 const verifyPin = () => {
   const pinStr = enteredPin.value.join('')
   if (pinStr === correctPin) {
+    financeAdminPin.value = pinStr
     showPinModal.value = false
     isLocked.value = false
     isAdminMode.value = true
@@ -909,6 +921,7 @@ const fetchMonthData = async () => {
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
+    financeRevision.value++
 
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
@@ -1004,14 +1017,14 @@ let updateInterval
 const isEditingInput = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
 const checkForUpdate = () => { if (document.visibilityState === 'visible') void updateMonitor?.check() }
 const reconsiderUpdate = () => updateMonitor?.reconsider()
-watch([isFormOpen, showPinModal, pendingWrites, isLoading, simulatedIncomeInput, simulatedIncome], reconsiderUpdate, { flush: 'sync' })
+watch([isFormOpen, showPinModal, pendingWrites, isLoading, financeBusy, simulatedIncomeInput, simulatedIncome], reconsiderUpdate, { flush: 'sync' })
 onMounted(() => {
   if (!import.meta.env.PROD) return
   const origin = __UPDATE_ORIGIN__ || window.location.origin
   updateMonitor = createUpdateMonitor({
     currentVersion: __APP_VERSION__,
     versionUrl: new URL('/version.json', origin).href,
-    canReload: () => document.visibilityState === 'visible' && !isFormOpen.value && !showPinModal.value && !isLoading.value && pendingWrites.value === 0 && !isEditingInput() && !simulatedIncomeInput.value && !simulatedIncome.value,
+    canReload: () => document.visibilityState === 'visible' && !isFormOpen.value && !financeBusy.value && !showPinModal.value && !isLoading.value && pendingWrites.value === 0 && !isEditingInput() && !simulatedIncomeInput.value && !simulatedIncome.value,
     onState: (state) => { updateState.value = state },
     fetchVersion: async (url) => {
       const controller = new AbortController()

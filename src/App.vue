@@ -384,11 +384,11 @@
         <div class="bg-brand-yellow pt-safe shadow-md relative z-10">
           <div class="px-4 py-3 flex justify-between items-center">
             <button @click="isFormOpen = false" class="text-slate-800 font-bold active:scale-90 transition-transform">✕ ยกเลิก</button>
-            <div class="font-bold text-slate-800">จดบันทึกใหม่</div>
+            <div class="font-bold text-slate-800">{{ editingBillId ? 'ชำระบิล' : 'จดบันทึกใหม่' }}</div>
             <div class="w-16"></div>
           </div>
           <!-- แท็บชนิดของฟอร์ม -->
-          <div class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
+          <div v-if="!editingBillId" class="flex overflow-x-auto whitespace-nowrap hide-scrollbar px-2 pb-0">
             <button @click="formType = 'expense'" :class="formType==='expense' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายจ่าย</button>
             <button @click="formType = 'income'" :class="formType==='income' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">รายรับ</button>
             <button @click="formType = 'transfer'" :class="formType==='transfer' ? 'bg-brand-bg text-white' : 'text-slate-700 hover:text-slate-900'" class="px-3 py-3 rounded-t-2xl font-bold text-xs sm:text-sm transition-all duration-300 flex-1 text-center">ย้ายเงิน</button>
@@ -471,7 +471,7 @@
           </div>
 
           <button :disabled="pendingWrites > 0" @click="saveRecord" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg mt-auto active:scale-95 transition-all shadow-lg flex justify-center items-center gap-2">
-            บันทึกข้อมูล
+            {{ editingBillId ? 'ยืนยันการชำระ' : 'บันทึกข้อมูล' }}
           </button>
         </div>
       </div>
@@ -607,6 +607,7 @@ const formAccount = ref('')
 const formCategory = ref('')
 const formNote = ref('')
 const formBillStatus = ref('ยังไม่จ่าย')
+const editingBillId = ref(null)
 const formSourceAcc = ref('')
 const formDestAcc = ref('')
 const formDebtorAction = ref('lend')
@@ -953,13 +954,16 @@ const openForm = (type) => {
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''
   formCategory.value = ''; formSourceAcc.value = ''; formDestAcc.value = ''
   formBillStatus.value = 'ยังไม่จ่าย'
+  editingBillId.value = null
   isFormOpen.value = true
 }
 
 const payUnpaidBill = (b) => {
   openForm('bill')
+  editingBillId.value = b.id
   formAmount.value = b.amount
   formCategory.value = b.category
+  formNote.value = b.note === '-' ? '' : b.note
   formBillStatus.value = 'จ่ายแล้ว'
 }
 
@@ -997,11 +1001,24 @@ const saveRecord = async () => {
   showToast("⏳ กำลังบันทึก...")
   pendingWrites.value++
   try {
-    const res = await fetch(`${API_BASE_URL}/api/add`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    const isPayingExistingBill = formType.value === 'bill' && editingBillId.value
+    const requestPayload = isPayingExistingBill
+      ? { id: editingBillId.value, user_id: userId.value, amount: payload.amount, account: payload.account, note: payload.note, status: 'จ่ายแล้ว' }
+      : payload
+    const res = await fetch(`${API_BASE_URL}${isPayingExistingBill ? '/api/update' : '/api/add'}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestPayload)
     })
     const data = await res.json()
-    if (data.status === 'success') { isFormOpen.value = false; showToast("✅ บันทึกสำเร็จ"); fetchMonthData() }
+    if (data.status === 'success') {
+      if (isPayingExistingBill) {
+        const bill = records.value.find(r => r.id === editingBillId.value)
+        if (bill) Object.assign(bill, { amount: Number(payload.amount), account: payload.account, note: payload.note, status: 'จ่ายแล้ว' })
+      }
+      editingBillId.value = null
+      isFormOpen.value = false
+      showToast(isPayingExistingBill ? "✅ ชำระบิลเรียบร้อย" : "✅ บันทึกสำเร็จ")
+      fetchMonthData()
+    }
     else showToast('❌ ' + data.message, true)
   } catch (e) { showToast('❌ ขาดการเชื่อมต่อ', true) }
   finally { pendingWrites.value-- }

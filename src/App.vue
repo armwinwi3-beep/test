@@ -460,7 +460,7 @@
                   <option value="เงินเดือน">💰 เงินเดือน</option><option value="จากพ่อ">👨 จากพ่อ</option><option value="จากแม่">👩 จากแม่</option><option value="อื่นๆ">อื่นๆ</option>
                 </template>
                 <template v-if="formType === 'bill'">
-                  <option value="ShopeePay">🧡 ShopeePay</option><option value="SEasyCash">💸 SEasyCash</option><option value="SPayExtra">💳 SPayExtra</option><option value="Internet">🌐 Internet</option><option value="ค่าทำฟัน">ฟังทำฟัน</option><option value="ประกันสังคม">🏥 ประกันสังคม</option><option value="บิลอื่นๆ">บิลอื่นๆ</option>
+                  <option value="ShopeePay">🧡 ShopeePay</option><option value="SEasyCash">💸 SEasyCash</option><option value="SPayExtra">💳 SPayExtra</option><option value="Internet">🌐 Internet</option><option value="ค่าทำฟัน">🦷 ค่าทำฟัน</option><option value="ประกันสังคม">🏥 ประกันสังคม</option><option value="บิลอื่นๆ">บิลอื่นๆ</option>
                 </template>
               </select>
             </div>

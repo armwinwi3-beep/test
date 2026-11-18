@@ -431,6 +431,12 @@
                 <option value="กสิกร">🟢 กสิกร</option><option value="กรุงไทย">🔵 กรุงไทย</option><option value="TrueMoney">🟠 TrueMoney</option><option value="ShopeeWallet">🛍️ ShopeeWallet</option><option value="เงินสด">💵 เงินสด</option>
               </select>
             </div>
+            <label class="bg-brand-card p-4 rounded-2xl border border-slate-700/50 flex items-center gap-3">
+              <span class="text-sm text-slate-300 shrink-0">ค่าธรรมเนียม</span>
+              <input type="number" min="0" step="0.01" inputmode="decimal" v-model="formTransferFee" placeholder="0" class="bg-transparent text-white text-base w-full outline-none text-right">
+              <span class="text-slate-400">฿</span>
+            </label>
+            <div class="text-xs text-slate-400 px-1">หักค่าธรรมเนียมเพิ่มจากบัญชีต้นทาง</div>
           </template>
           
           <template v-else>
@@ -627,6 +633,7 @@ const formBillStatus = ref('ยังไม่จ่าย')
 const editingBillId = ref(null)
 const formSourceAcc = ref('')
 const formDestAcc = ref('')
+const formTransferFee = ref('')
 const formDebtorAction = ref('lend')
 const formDebtorName = ref('')
 
@@ -971,6 +978,7 @@ const openForm = (type) => {
   formType.value = type
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''
   formCategory.value = ''; formSourceAcc.value = ''; formDestAcc.value = ''
+  formTransferFee.value = ''
   formBillStatus.value = 'ยังไม่จ่าย'
   editingBillId.value = null
   isFormOpen.value = true
@@ -1022,7 +1030,10 @@ const saveRecord = async () => {
   if (formType.value === 'transfer') {
     if(!formSourceAcc.value || !formDestAcc.value) return alert("⚠️ กรุณาเลือกบัญชีต้นทางและปลายทางให้ครบ!")
     if(formSourceAcc.value === formDestAcc.value) return alert("⚠️ บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน!")
+    const fee = Number(formTransferFee.value || 0)
+    if (!Number.isFinite(fee) || fee < 0 || !/^\d+(?:\.\d{1,2})?$/.test(String(formTransferFee.value || '0'))) return alert("⚠️ ค่าธรรมเนียมต้องเป็นจำนวนเงินตั้งแต่ 0 บาท และมีทศนิยมไม่เกิน 2 ตำแหน่ง")
     payload.sourceAccount = formSourceAcc.value; payload.destinationAccount = formDestAcc.value
+    payload.fee = fee
   } else if (formType.value === 'debtor') {
     if(!formDebtorName.value.trim()) {
       return alert("⚠️ กรุณาเลือกคนยืมก่อน หากยังไม่มีชื่อให้เพิ่มในหน้าคนยืมครับ!")

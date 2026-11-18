@@ -78,6 +78,7 @@
                     <template v-else>{{ item.account }}</template>
                     <span v-if="item.note && item.note !== '-'" class="italic text-slate-300"> ({{ item.note }})</span>
                   </p>
+                  <button v-if="receiptIds.has(String(item.id))" @click="openReceipt(item)" class="mt-2 text-xs font-bold text-sky-300 underline">📎 ดูรูปหลักฐาน</button>
                 </div>
                 <div class="transaction-actions">
                   <span class="font-bold text-sm tracking-wide" :class="isExpense(item.type) ? 'text-red-400' : (isIncome(item.type) ? 'text-green-400' : 'text-yellow-400')">
@@ -490,6 +491,16 @@
             <input type="text" v-model="formNote" placeholder="📝 เพิ่มโน้ต (ทางเลือก)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
           </div>
 
+          <div v-if="formType === 'expense'" class="bg-brand-card p-4 rounded-2xl border border-slate-700/50">
+            <label class="block text-sm text-slate-300 font-medium mb-2" for="expense-receipt">📎 รูปหลักฐาน (ทางเลือก)</label>
+            <input id="expense-receipt" ref="receiptInput" type="file" accept="image/jpeg,image/png,image/webp" @change="onReceiptSelected" class="block w-full text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-sky-600 file:px-3 file:py-2 file:text-white">
+            <div v-if="selectedReceipt" class="mt-2 flex items-center justify-between gap-2 text-xs text-slate-300">
+              <span class="truncate">{{ selectedReceipt.name }}</span>
+              <button type="button" @click="clearReceipt" class="text-red-300 font-bold">ลบรูป</button>
+            </div>
+            <p class="mt-2 text-xs text-slate-500">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 5 MB</p>
+          </div>
+
           <button :disabled="pendingWrites > 0" @click="saveRecord" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg mt-auto active:scale-95 transition-all shadow-lg flex justify-center items-center gap-2">
             {{ editingBillId ? 'ยืนยันการชำระ' : 'บันทึกข้อมูล' }}
           </button>
@@ -565,6 +576,10 @@
       </div>
     </form>
   </div>
+  <div v-if="receiptUrl" class="fixed inset-0 z-[80] bg-black/90 flex flex-col p-4" role="dialog" aria-label="รูปหลักฐาน">
+    <button @click="receiptUrl = ''" class="self-end text-white font-bold text-lg p-2">✕ ปิด</button>
+    <img :src="receiptUrl" alt="รูปหลักฐานรายจ่าย" class="flex-1 min-h-0 w-full object-contain">
+  </div>
 </template>
 
 <script setup>
@@ -629,6 +644,10 @@ const formAmount = ref('')
 const formAccount = ref('')
 const formCategory = ref('')
 const formNote = ref('')
+const selectedReceipt = ref(null)
+const receiptInput = ref(null)
+const receiptIds = ref(new Set())
+const receiptUrl = ref('')
 const formBillStatus = ref('ยังไม่จ่าย')
 const editingBillId = ref(null)
 const formSourceAcc = ref('')
@@ -944,12 +963,49 @@ const fetchMonthData = async () => {
     debtorsData.value = data.debtors || {}
     debtorPeople.value = data.debtor_people || []
     financeRevision.value++
+    await loadReceiptIds()
 
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
   } finally {
     isLoading.value = false
   }
+}
+
+const loadReceiptIds = async () => {
+  receiptIds.value = new Set()
+  if (!lineDisplayName.value && !isAdminMode.value) return
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/receipts?user_id=${encodeURIComponent(userId.value)}`, { headers: financeHeaders() })
+    if (!res.ok) return
+    const data = await res.json()
+    receiptIds.value = new Set((data.record_ids || []).map(String))
+  } catch (e) { /* The expense list remains available if attachments cannot load. */ }
+}
+
+const openReceipt = async (item) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/receipts/${item.id}?user_id=${encodeURIComponent(userId.value)}`, { headers: financeHeaders() })
+    const data = await res.json()
+    if (!res.ok || !data.url) throw new Error(data.message || 'เปิดรูปไม่สำเร็จ')
+    receiptUrl.value = data.url
+  } catch (e) { showToast('❌ ' + e.message, true) }
+}
+
+const clearReceipt = () => {
+  selectedReceipt.value = null
+  if (receiptInput.value) receiptInput.value.value = ''
+}
+
+const onReceiptSelected = (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return clearReceipt()
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    clearReceipt()
+    showToast('❌ เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB', true)
+    return
+  }
+  selectedReceipt.value = file
 }
 
 const deleteRecord = async (item) => {
@@ -977,6 +1033,7 @@ const openForm = (type) => {
   if (pendingWrites.value > 0) return
   formType.value = type
   formAmount.value = ''; formNote.value = ''; formDebtorName.value = ''; formAccount.value = ''
+  clearReceipt()
   formCategory.value = ''; formSourceAcc.value = ''; formDestAcc.value = ''
   formTransferFee.value = ''
   formBillStatus.value = 'ยังไม่จ่าย'
@@ -1019,6 +1076,7 @@ const payUnpaidBill = (b) => {
 const saveRecord = async () => {
   if (pendingWrites.value > 0) return
   if (!formAmount.value) return alert("⚠️ กรุณาใส่จำนวนเงินด้วยครับ!")
+  if (formType.value === 'expense' && selectedReceipt.value && !lineDisplayName.value && !isAdminMode.value) return alert("⚠️ กรุณาเข้าสู่ระบบก่อนแนบรูปหลักฐาน")
   
   let payload = { 
     type: formType.value === 'bill' ? 'รายจ่ายต้องชำระต่อเดือน' : formType.value, 
@@ -1057,8 +1115,17 @@ const saveRecord = async () => {
     const requestPayload = isPayingExistingBill
       ? { id: editingBillId.value, user_id: userId.value, amount: payload.amount, account: payload.account, note: payload.note, status: 'จ่ายแล้ว' }
       : payload
-    const res = await fetch(`${API_BASE_URL}${isPayingExistingBill ? '/api/update' : '/api/add'}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(requestPayload)
+    const withReceipt = formType.value === 'expense' && selectedReceipt.value
+    const body = withReceipt ? new FormData() : JSON.stringify(requestPayload)
+    if (withReceipt) {
+      for (const [key, value] of Object.entries(payload)) body.append(key, String(value))
+      body.append('receipt', selectedReceipt.value)
+    }
+    const endpoint = withReceipt ? '/api/receipts/expense' : (isPayingExistingBill ? '/api/update' : '/api/add')
+    const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'POST',
+      headers: withReceipt ? financeHeaders() : { 'Content-Type': 'application/json' },
+      body
     })
     const data = await res.json()
     if (data.status === 'success') {
@@ -1067,6 +1134,7 @@ const saveRecord = async () => {
         if (bill) Object.assign(bill, { amount: Number(payload.amount), account: payload.account, note: payload.note, status: 'จ่ายแล้ว' })
       }
       editingBillId.value = null
+      clearReceipt()
       isFormOpen.value = false
       showToast(isPayingExistingBill ? "✅ ชำระบิลเรียบร้อย" : "✅ บันทึกสำเร็จ")
       fetchMonthData()

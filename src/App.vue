@@ -208,6 +208,17 @@
             จดให้ยืม / ได้คืน
           </button>
           
+          <div class="mb-5 rounded-2xl bg-brand-card p-4 border border-slate-700/50">
+            <div class="text-white font-bold mb-3">👥 รายชื่อคนยืมในบัญชี</div>
+            <form @submit.prevent="addDebtorPerson" class="flex gap-2">
+              <input v-model.trim="newDebtorPerson" maxlength="120" placeholder="ชื่อคนยืมใหม่" class="min-w-0 flex-1 rounded-xl bg-brand-bg px-3 py-2 text-white outline-none border border-slate-700">
+              <button type="submit" :disabled="savingDebtorPerson" class="rounded-xl bg-violet-600 px-4 py-2 text-white font-bold disabled:opacity-50">เพิ่ม</button>
+            </form>
+            <div v-if="debtorPeople.length" class="mt-3 flex flex-wrap gap-2">
+              <span v-for="name in debtorPeople" :key="name" class="rounded-full bg-violet-500/15 px-3 py-1 text-sm text-violet-200">{{ name }}</span>
+            </div>
+          </div>
+
           <div v-if="debtorsList.length === 0" class="text-center text-slate-400 py-12 flex flex-col items-center gap-2">
             <span class="text-4xl">😇</span>
             <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
@@ -448,7 +459,10 @@
                   {{ d.name }} (ยอดค้าง {{ d.amount.toLocaleString('th-TH') }} ฿)
                 </option>
               </select>
-              <input v-else type="text" v-model="formDebtorName" placeholder="พิมพ์ชื่อคนยืม (เช่น นัท)" class="bg-transparent w-full outline-none text-white font-medium text-base placeholder:text-slate-500">
+              <select v-else v-model="formDebtorName" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
+                <option value="" disabled>👤 เลือกคนยืม</option>
+                <option v-for="name in debtorPeople" :key="name" :value="name">{{ name }}</option>
+              </select>
             </div>
             <div v-else class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
               <select v-model="formCategory" class="bg-transparent text-sky-400 w-full outline-none appearance-none font-medium text-base">
@@ -589,6 +603,9 @@ const totalExpense = ref(0)
 const totalIncome = ref(0)
 const accountBalances = ref({})
 const debtorsData = ref({})
+const debtorPeople = ref([])
+const newDebtorPerson = ref('')
+const savingDebtorPerson = ref(false)
 const simulatedIncome = ref(0)
 const simulatedIncomeInput = ref('')
 const isLocked = ref(false)
@@ -918,6 +935,7 @@ const fetchMonthData = async () => {
     totalIncome.value = data.total_income || 0
     accountBalances.value = data.account_balances || {}
     debtorsData.value = data.debtors || {}
+    debtorPeople.value = data.debtor_people || []
     financeRevision.value++
 
   } catch (e) {
@@ -958,6 +976,29 @@ const openForm = (type) => {
   isFormOpen.value = true
 }
 
+const addDebtorPerson = async () => {
+  const name = newDebtorPerson.value.trim()
+  if (!name || savingDebtorPerson.value) return
+  savingDebtorPerson.value = true
+  pendingWrites.value++
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/debtor-people`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, user_id: userId.value })
+    })
+    const data = await res.json()
+    if (!res.ok || data.status !== 'success') throw new Error(data.message || 'บันทึกไม่สำเร็จ')
+    newDebtorPerson.value = ''
+    await fetchMonthData()
+    showToast('✅ เพิ่มรายชื่อแล้ว')
+  } catch (e) {
+    showToast('❌ ' + e.message, true)
+  } finally {
+    pendingWrites.value--
+    savingDebtorPerson.value = false
+  }
+}
+
 const payUnpaidBill = (b) => {
   openForm('bill')
   editingBillId.value = b.id
@@ -984,7 +1025,7 @@ const saveRecord = async () => {
     payload.sourceAccount = formSourceAcc.value; payload.destinationAccount = formDestAcc.value
   } else if (formType.value === 'debtor') {
     if(!formDebtorName.value.trim()) {
-      return alert(formDebtorAction.value === 'repay' ? "⚠️ กรุณาเลือกคนที่คืนเงินด้วยครับ!" : "⚠️ กรุณาพิมพ์ชื่อคนยืมด้วยครับ!")
+      return alert("⚠️ กรุณาเลือกคนยืมก่อน หากยังไม่มีชื่อให้เพิ่มในหน้าคนยืมครับ!")
     }
     if(!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     payload.type = formDebtorAction.value === 'lend' ? 'ให้ยืมเงิน' : 'ได้คืนจากลูกหนี้'

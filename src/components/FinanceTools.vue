@@ -37,7 +37,7 @@
             <p class="text-xs text-slate-400">พบ {{ results.length }} รายการ · เรียงรายการล่าสุดก่อน</p>
             <div v-for="row in results.slice(0, limit)" :key="row.id" class="finance-record rounded-2xl bg-brand-card border border-slate-700/50 p-4">
               <div class="min-w-0"><p class="font-semibold break-words">{{ row.category }}</p><p class="text-xs text-slate-400 mt-1">{{ row.date }} · {{ row.type }}</p><p class="text-xs text-slate-400 mt-1">{{ row.account }}<span v-if="row.type === 'ย้ายเงิน'"> → {{ row.category }}</span></p><p v-if="row.note && row.note !== '-'" class="text-xs text-slate-300 mt-1 break-words">{{ row.note }}</p><p v-if="row.status === 'ยังไม่จ่าย'" class="text-xs text-amber-300 mt-1">ยังไม่จ่าย</p></div>
-              <div class="shrink-0 text-right"><strong>{{ money(row.amount) }} ฿</strong><button @click="edit(row)" class="block ml-auto mt-2 text-sm text-sky-300">{{ row.status === 'ยังไม่จ่าย' ? 'แก้ไข / ชำระ' : '✏️ แก้ไข' }}</button></div>
+              <div class="shrink-0 text-right"><strong>{{ money(row.amount) }} ฿</strong><button @click="view(row)" class="block ml-auto mt-2 text-sm text-sky-300">ดูรายละเอียด</button></div>
             </div>
             <p v-if="!loading && !results.length" class="text-center text-slate-400 py-8">ไม่พบรายการ</p>
             <button v-if="results.length > limit" @click="limit += 50" class="action w-full">แสดงเพิ่ม</button>
@@ -80,6 +80,29 @@
       </main>
     </div>
 
+    <div v-if="viewing && !editing" class="finance-edit-backdrop z-[80] bg-black/70" :style="viewportStyle" role="dialog" aria-modal="true" aria-label="รายละเอียดรายการ">
+      <div class="finance-edit-form bg-brand-bg text-white rounded-2xl border border-slate-700 space-y-3">
+        <div class="flex items-center justify-between gap-3"><h3 class="font-bold text-lg">รายละเอียดรายการ</h3><button @click="viewing = null" class="text-slate-300 text-xl p-2" aria-label="ปิดรายละเอียด">✕</button></div>
+        <dl class="space-y-2 text-sm">
+          <div class="flex justify-between gap-3"><dt class="text-slate-400">ประเภท</dt><dd class="text-right">{{ viewing.type }}</dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-slate-400">วันที่</dt><dd class="text-right">{{ viewing.date }} {{ viewing.time && viewing.time !== '-' ? viewing.time : '' }}</dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-slate-400">จำนวนเงิน</dt><dd class="text-right font-bold">{{ money(viewing.amount) }} ฿</dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-slate-400">{{ viewing.type === 'ย้ายเงิน' ? 'บัญชีต้นทาง' : 'บัญชี' }}</dt><dd class="text-right">{{ viewing.account }}</dd></div>
+          <div class="flex justify-between gap-3"><dt class="text-slate-400">{{ viewing.type === 'ย้ายเงิน' ? 'บัญชีปลายทาง' : 'หมวดหมู่ / ชื่อ' }}</dt><dd class="text-right break-words">{{ viewing.category }}</dd></div>
+          <div v-if="viewing.status && viewing.status !== '-'" class="flex justify-between gap-3"><dt class="text-slate-400">สถานะ</dt><dd class="text-right">{{ viewing.status }}</dd></div>
+          <div v-if="viewing.note && viewing.note !== '-'" class="border-t border-slate-700 pt-2"><dt class="text-slate-400">โน้ต</dt><dd class="mt-1 break-words">{{ viewing.note }}</dd></div>
+        </dl>
+        <div class="border-t border-slate-700 pt-3">
+          <p class="text-sm font-semibold mb-2">รูปหลักฐาน</p>
+          <p v-if="detailReceiptLoading" class="text-xs text-slate-400">กำลังโหลดรูป…</p>
+          <p v-else-if="detailError" class="text-xs text-red-300">{{ detailError }}</p>
+          <img v-else-if="detailReceiptUrl" :src="detailReceiptUrl" alt="รูปหลักฐานรายการ" class="w-full max-h-64 object-contain rounded-xl bg-black">
+          <p v-else class="text-xs text-slate-400">ยังไม่มีรูปหลักฐาน</p>
+        </div>
+        <div class="flex gap-3"><button type="button" @click="viewing = null" class="flex-1 p-3 rounded-xl bg-slate-800">กลับ</button><button type="button" @click="edit(viewing)" class="action flex-1">แก้ไขรายการ</button></div>
+      </div>
+    </div>
+
     <div v-if="editing" class="finance-edit-backdrop z-[80] bg-black/70" :style="viewportStyle" role="dialog" aria-modal="true" aria-label="แก้ไขรายการ">
       <form @submit.prevent="saveEdit" class="finance-edit-form bg-brand-bg text-white rounded-2xl border border-slate-700 space-y-3">
         <h3 class="font-bold text-lg">แก้ไขรายการ</h3>
@@ -90,6 +113,10 @@
         <label class="block text-sm">{{ editing.type === 'ย้ายเงิน' ? 'บัญชีปลายทาง' : 'หมวดหมู่ / ชื่อคนยืม' }}<select v-if="editing.type === 'ย้ายเงิน'" v-model="editing.category" class="field"><option v-for="account in allAccounts" :key="account">{{ account }}</option></select><input v-else v-model.trim="editing.category" required maxlength="120" class="field"></label>
         <label v-if="editing.type === 'รายจ่ายต้องชำระต่อเดือน'" class="block text-sm">สถานะ<select v-model="editing.status" class="field"><option>ยังไม่จ่าย</option><option>จ่ายแล้ว</option></select></label>
         <label class="block text-sm">โน้ต<input v-model="editing.note" maxlength="1000" class="field"></label>
+        <label class="block text-sm">รูปหลักฐาน (เพิ่มหรือเปลี่ยน)<input type="file" accept="image/jpeg,image/png,image/webp" @change="selectEditReceipt" class="field"></label>
+        <p v-if="editReceiptFile" class="text-xs text-sky-300 break-words">เลือกรูป: {{ editReceiptFile.name }}</p>
+        <p v-else-if="detailReceiptUrl" class="text-xs text-slate-400">มีรูปหลักฐานอยู่แล้ว เลือกรูปใหม่เพื่อเปลี่ยน</p>
+        <p class="text-xs text-slate-400">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 5 MB</p>
         <div class="flex gap-3"><button :disabled="saving" type="button" @click="editing = null" class="flex-1 p-3 rounded-xl bg-slate-800">ยกเลิก</button><button :disabled="saving" class="action flex-1">{{ saving ? 'กำลังบันทึก…' : 'บันทึกการแก้ไข' }}</button></div>
       </form>
     </div>
@@ -101,7 +128,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { accounts, recordTypes, money, toISO, bangkokToday, filterRecords } from '../finance-tools.js'
 const props = defineProps({ userId: String, month: String, apiBase: String, authHeaders: Function, revision: Number })
 const emit = defineEmits(['changed', 'busy', 'go-bills'])
-const tabs = [{key:'history',label:'🔎 ค้นหา / แก้ไข'}, {key:'budgets',label:'🎯 งบรายเดือน'}, {key:'recurring',label:'🔁 รายการประจำ'}]
+const tabs = [{key:'history',label:'🔎 ค้นหา / รายละเอียด'}, {key:'budgets',label:'🎯 งบรายเดือน'}, {key:'recurring',label:'🔁 รายการประจำ'}]
 const opened = ref(false), active = ref('history'), loading = ref(false), saving = ref(false)
 const viewportStyle = ref({})
 function syncViewport() {
@@ -112,6 +139,8 @@ function syncViewport() {
     : {}
 }
 const error = ref(''), success = ref(''), editError = ref(''), editing = ref(null)
+const viewing = ref(null), detailReceiptUrl = ref(''), detailReceiptLoading = ref(false), detailError = ref('')
+const editReceiptFile = ref(null)
 const history = ref([]), budgets = ref([]), rules = ref([]), due = ref([]), limit = ref(50)
 const today = bangkokToday(), budgetMonth = ref(props.month)
 const budgetDraft = ref({category:'',amount:''})
@@ -125,7 +154,7 @@ const alerts = computed(() => budgets.value.filter(item => item.percent >= 80))
 const remaining = computed(() => budgets.value.reduce((sum, item) => sum + item.remaining, 0))
 const monthLabel = computed(() => budgetMonth.value)
 let alive = true, planSequence = 0
-watch([opened, editing, saving], () => emit('busy', opened.value || !!editing.value || saving.value), {flush:'sync'})
+watch([opened, viewing, editing, saving], () => emit('busy', opened.value || !!viewing.value || !!editing.value || saving.value), {flush:'sync'})
 watch(filters, () => { limit.value = 50 }, {deep:true})
 watch(() => props.month, month => { budgetMonth.value = month; void loadPlan() })
 watch(() => props.revision, () => { if (!saving.value) void loadPlan() })
@@ -160,10 +189,36 @@ function close() {
   const hasDraft = budgetDraft.value.category || budgetDraft.value.amount || ruleDraft.value.category || ruleDraft.value.amount || ruleDraft.value.note
   if (hasDraft && !confirm('ยังมีข้อมูลที่ไม่ได้บันทึก ต้องการปิดหน้านี้หรือไม่?')) return
   budgetDraft.value = {category:'',amount:''}; ruleDraft.value = emptyRule()
-  opened.value = false; error.value = ''; success.value = ''
+  opened.value = false; viewing.value = null; editing.value = null; error.value = ''; success.value = ''
   if (budgetMonth.value !== props.month) { budgetMonth.value = props.month; void loadPlan() }
 }
-function edit(row) { editError.value = ''; editing.value = {...row, date:toISO(row.date)} }
+async function view(row) {
+  viewing.value = row
+  detailReceiptUrl.value = ''
+  detailError.value = ''
+  detailReceiptLoading.value = true
+  try {
+    const response = await fetch(`${props.apiBase}/api/receipts/${row.id}?user_id=${encodeURIComponent(props.userId)}`, {headers:props.authHeaders()})
+    if (response.status === 404) return
+    const data = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(data.message || 'โหลดรูปไม่สำเร็จ')
+    if (viewing.value?.id === row.id) detailReceiptUrl.value = data.url || ''
+  } catch (e) { if (viewing.value?.id === row.id) detailError.value = e.message }
+  finally { if (viewing.value?.id === row.id) detailReceiptLoading.value = false }
+}
+function edit(row) { editError.value = ''; editReceiptFile.value = null; editing.value = {...row, date:toISO(row.date)} }
+function selectEditReceipt(event) {
+  const file = event.target.files?.[0]
+  if (!file) { editReceiptFile.value = null; return }
+  if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    event.target.value = ''
+    editReceiptFile.value = null
+    editError.value = 'เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB'
+    return
+  }
+  editError.value = ''
+  editReceiptFile.value = file
+}
 async function write(path, data, after) {
   if (saving.value) return
   saving.value = true; error.value = ''; success.value = ''
@@ -178,7 +233,26 @@ function toggleRule(rule) { return write('/recurring/toggle',{id:rule.id,active:
 async function saveEdit() {
   if (saving.value) return
   saving.value = true; editError.value = ''
-  try { await api('/record',editing.value); if (!alive) return; editing.value = null; emit('changed'); await Promise.all([loadHistory(),loadPlan()]); success.value = 'แก้ไขรายการแล้ว' }
+  try {
+    const recordId = editing.value.id
+    await api('/record',editing.value)
+    if (editReceiptFile.value) {
+      const body = new FormData()
+      body.append('user_id', props.userId)
+      body.append('receipt', editReceiptFile.value)
+      const response = await fetch(`${props.apiBase}/api/receipts/${recordId}/image`, {method:'POST',headers:props.authHeaders(),body})
+      const data = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error('แก้ไขข้อมูลแล้ว แต่แนบรูปไม่สำเร็จ: ' + (data.message || 'กรุณาลองอีกครั้ง'))
+    }
+    if (!alive) return
+    editing.value = null
+    editReceiptFile.value = null
+    emit('changed')
+    await Promise.all([loadHistory(),loadPlan()])
+    success.value = 'แก้ไขรายการแล้ว'
+    const updated = history.value.find(row => String(row.id) === String(recordId))
+    if (updated) void view(updated)
+  }
   catch (e) { if (alive) { if(editing.value) editError.value=e.message; else error.value=e.message } }
   finally { if (alive) saving.value = false }
 }
@@ -193,7 +267,7 @@ onUnmounted(() => {
   window.visualViewport?.removeEventListener('scroll', syncViewport)
   alive=false; emit('busy',false)
 })
-defineExpose({ edit })
+defineExpose({ view, edit })
 </script>
 
 <style scoped>

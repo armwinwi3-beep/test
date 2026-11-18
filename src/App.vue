@@ -84,7 +84,7 @@
                   <span class="font-bold text-sm tracking-wide" :class="isExpense(item.type) ? 'text-red-400' : (isIncome(item.type) ? 'text-green-400' : 'text-yellow-400')">
                     {{ isExpense(item.type) ? '-' : (isIncome(item.type) ? '+' : '') }}{{ summaryMoney(item.amount) }}
                   </span>
-                  <button @click="financeTools?.edit(item)" aria-label="แก้ไขรายการ" class="row-action text-sky-300">✎</button>
+                  <button @click="financeTools?.view(item)" aria-label="ดูรายละเอียดรายการ" class="row-action text-sky-300">▤</button>
                   <button @click="deleteRecord(item)" aria-label="ลบรายการ" class="row-action text-slate-400 hover:text-red-400">×</button>
                 </div>
               </div>

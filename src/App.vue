@@ -20,7 +20,13 @@
     </header>
 
     <!-- 🌟 ส่วนเนื้อหาหลัก 🌟 -->
-    <main class="app-scroll flex-1 min-h-0 overflow-y-auto scroll-smooth">
+    <main ref="appScroll" class="app-scroll flex-1 min-h-0 overflow-y-auto scroll-smooth" @touchstart.passive="onPullStart" @touchmove.passive="onPullMove" @touchend="onPullEnd" @touchcancel="onPullCancel">
+      <div v-if="currentTab === 'home' && (pullDistance > 0 || pullRefreshing)" class="pointer-events-none sticky top-0 z-30 h-0 flex justify-center" role="status" aria-live="polite">
+        <div class="mt-2 rounded-full border border-sky-400/30 bg-slate-900/95 px-4 py-2 text-xs font-semibold text-sky-100 shadow-lg" :style="{ transform: `translateY(${Math.min(pullDistance, 72)}px)` }">
+          <span class="inline-block mr-1" :class="{ 'animate-spin': pullRefreshing }">↻</span>
+          {{ pullRefreshing ? 'กำลังรีเฟรช…' : pullDistance >= 64 ? 'ปล่อยเพื่อรีเฟรช' : 'ดึงลงเพื่อรีเฟรช' }}
+        </div>
+      </div>
       <div v-show="currentTab === 'home'" class="px-4 pt-4">
         <section class="balance-card mb-5">
           <div class="flex items-center justify-between gap-3 mb-5">
@@ -605,6 +611,28 @@ const clearAdminPin = () => {
   adminPinInput.value?.focus()
 }
 const currentTab = ref('home')
+const appScroll = ref(null)
+const pullDistance = ref(0)
+const pullRefreshing = ref(false)
+let pullStartY = null
+const onPullStart = (event) => {
+  if (currentTab.value !== 'home' || appScroll.value?.scrollTop > 1 || pullRefreshing.value || isLoading.value || isFormOpen.value || isSummaryOpen.value || showPinModal.value || financeBusy.value || event.touches.length !== 1) return
+  pullStartY = event.touches[0].clientY
+}
+const onPullMove = (event) => {
+  if (pullStartY === null) return
+  if (appScroll.value?.scrollTop > 1) { pullDistance.value = 0; pullStartY = null; return }
+  pullDistance.value = Math.min(96, Math.max(0, (event.touches[0].clientY - pullStartY) * 0.5))
+}
+const onPullEnd = async () => {
+  if (pullStartY === null) return
+  pullStartY = null
+  if (pullDistance.value < 64) { pullDistance.value = 0; return }
+  pullRefreshing.value = true
+  pullDistance.value = 64
+  try { await fetchMonthData() } finally { pullRefreshing.value = false; pullDistance.value = 0 }
+}
+const onPullCancel = () => { pullStartY = null; if (!pullRefreshing.value) pullDistance.value = 0 }
 const isFormOpen = ref(false)
 const isSummaryOpen = ref(false)
 const isLoading = ref(true)
@@ -1221,6 +1249,7 @@ onMounted(async () => {
 </script>
 
 <style>
+.app-scroll { overscroll-behavior-y: contain; }
 .fade-enter-active, .fade-leave-active {
   transition: opacity 0.25s ease, transform 0.25s ease;
 }

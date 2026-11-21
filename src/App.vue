@@ -598,7 +598,6 @@ import { useCalendarSelection } from './calendar-selection.js'
 // Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
 const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
-const correctPin = 'aaaa' // ⚠️ รหัส PIN สำหรับ Admin Mode สามารถเปลี่ยนได้ที่นี่
 
 // State
 const isAdminMode = ref(false)
@@ -690,10 +689,27 @@ const openAdminMode = () => {
   showPinModal.value = true
 }
 
-const verifyPin = () => {
+// ส่ง PIN ให้ backend ตรวจ เพราะ PIN ที่ฝังไว้ในหน้าเว็บใครก็เปิดดูได้
+const checkAdminPin = async (pinStr) => {
+  const m = String(viewDate.value.getMonth() + 1).padStart(2, '0')
+  const y = String(viewDate.value.getFullYear()).slice(-2)
+  const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=admin`, { headers: { 'X-Admin-Pin': pinStr } })
+  if (res.ok) return ''
+  const data = await res.json().catch(() => ({}))
+  return data.message || 'รหัส PIN ไม่ถูกต้อง'
+}
+
+const verifyPin = async () => {
   const pinStr = enteredPin.value
   if (pinStr.length !== 4) return
-  if (pinStr === correctPin) {
+  let error = ''
+  try {
+    error = await checkAdminPin(pinStr)
+  } catch (e) {
+    showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)
+    return
+  }
+  if (!error) {
     financeAdminPin.value = pinStr
     enteredPin.value = ''
     showAdminPin.value = false
@@ -705,7 +721,7 @@ const verifyPin = () => {
     fetchMonthData()
     showToast('🔓 เข้าสู่โหมดแอดมินสำเร็จ')
   } else {
-    showToast('❌ รหัส PIN ไม่ถูกต้อง', true)
+    showToast('❌ ' + error, true)
     adminPinInput.value?.focus()
     adminPinInput.value?.select()
   }
@@ -968,7 +984,18 @@ const fetchMonthData = async () => {
   const y = String(viewDate.value.getFullYear()).slice(-2)
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${currentUserId}`)
+    const res = await fetch(`${API_BASE_URL}/api/data?month=${m}/${y}&user_id=${encodeURIComponent(currentUserId)}`, { headers: financeHeaders() })
+    if (res.status === 401) {
+      const data = await res.json().catch(() => ({}))
+      showToast('🔒 ' + (data.message || 'กรุณาเข้าสู่ระบบอีกครั้ง'), true)
+      if (isAdminMode.value) {
+        financeAdminPin.value = ''
+        isAdminMode.value = false
+        isLocked.value = true
+        showPinModal.value = true
+      }
+      return
+    }
     if (!res.ok) throw new Error()
     const data = await res.json()
 
@@ -1042,7 +1069,7 @@ const deleteRecord = async (item) => {
   try {
     const res = await fetch(`${API_BASE_URL}/api/delete`, {
       method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...financeHeaders() },
       body: JSON.stringify({ id: item.id, user_id: userId.value }) 
     })
     const data = await res.json()
@@ -1076,7 +1103,7 @@ const addDebtorPerson = async () => {
   pendingWrites.value++
   try {
     const res = await fetch(`${API_BASE_URL}/api/debtor-people`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...financeHeaders() },
       body: JSON.stringify({ name, user_id: userId.value })
     })
     const data = await res.json()
@@ -1152,7 +1179,7 @@ const saveRecord = async () => {
     const endpoint = withReceipt ? '/api/receipts/expense' : (isPayingExistingBill ? '/api/update' : '/api/add')
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'POST',
-      headers: withReceipt ? financeHeaders() : { 'Content-Type': 'application/json' },
+      headers: withReceipt ? financeHeaders() : { 'Content-Type': 'application/json', ...financeHeaders() },
       body
     })
     const data = await res.json()

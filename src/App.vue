@@ -1018,7 +1018,8 @@ const fetchMonthData = async () => {
     debtorsData.value = data.debtors || {}
     debtorPeople.value = data.debtor_people || []
     financeRevision.value++
-    await loadReceiptIds()
+    // ไม่ต้องรอรายการรูปใบเสร็จ ให้แสดงยอดและรายการได้ทันที
+    void loadReceiptIds()
 
   } catch (e) {
     showToast('❌ ขาดการเชื่อมต่อกับเซิร์ฟเวอร์', true)

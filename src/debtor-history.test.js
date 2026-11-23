@@ -41,6 +41,32 @@ test('overpayment never makes a loan negative', () => {
   assert.equal(h.remaining, 0)
 })
 
+test('a repayment linked to a loan pays that loan, not the oldest', () => {
+  const h = debtorHistory([
+    lend(1, '11/11/2026', '11:34:00', 100),
+    lend(2, '20/11/2026', '11:18:00', 200),
+    { ...repay(3, '22/11/2026', '12:25:00', 200), repays_id: 2 },
+  ], 'นัท')
+  assert.deepEqual(h.loans.map(l => [l.id, l.remaining]), [[2, 0], [1, 100]])
+  assert.equal(h.entries.find(e => e.id === 3).repaysLoan.id, 2)
+})
+
+test('linked and unlinked repayments mix: unlinked still go oldest first', () => {
+  const h = debtorHistory([
+    lend(1, '01/11/2026', '08:00:00', 100),
+    lend(2, '02/11/2026', '08:00:00', 100),
+    { ...repay(3, '03/11/2026', '08:00:00', 60), repays_id: 2 },
+    repay(4, '04/11/2026', '08:00:00', 120),
+  ], 'นัท')
+  assert.deepEqual(h.loans.map(l => [l.id, l.remaining]), [[2, 20], [1, 0]])
+  assert.equal(h.remaining, 20)
+})
+
+test('a repayment linked to a deleted loan falls back to oldest first', () => {
+  const h = debtorHistory([lend(1, '01/11/2026', '08:00:00', 100), { ...repay(2, '02/11/2026', '08:00:00', 30), repays_id: 99 }], 'นัท')
+  assert.equal(h.loans[0].remaining, 70)
+})
+
 test('later loans after a full repayment stay outstanding', () => {
   const h = debtorHistory([
     lend(1, '01/09/2026', '08:00:00', 100),

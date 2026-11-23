@@ -31,6 +31,14 @@ export function debtorHistory(records, name) {
     } else {
       totalRepaid += row.amount
       let left = row.amount
+      // A repayment recorded against a specific loan pays that loan first.
+      const linked = row.repays_id != null ? loans.find(l => String(l.id) === String(row.repays_id)) : null
+      if (linked) {
+        row.repaysLoan = linked
+        const paid = Math.min(left, linked.remaining)
+        linked.remaining = round(linked.remaining - paid)
+        left -= paid
+      }
       for (const loan of loans) {
         if (left <= 0) break
         const paid = Math.min(left, loan.remaining)

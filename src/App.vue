@@ -479,19 +479,28 @@
               </select>
             </div>
             <div v-if="formType === 'debtor' && formDebtorAction === 'repay' && formDebtorName" class="bg-brand-card p-4 rounded-2xl border border-slate-700/50">
-              <div class="text-sm font-bold text-white mb-2">🧾 คืนเงินของรายการยืมไหน</div>
+              <div class="text-sm font-bold text-white">🧾 คืนเงินของรายการยืมไหน</div>
+              <div class="text-[11px] text-slate-400 mb-2">เลือกได้หลายรายการ ยอดคืนจะหักรายการที่เก่าที่สุดก่อน</div>
               <div v-if="!debtorRecords" class="text-xs text-slate-400 py-2">กำลังโหลดรายการยืม...</div>
               <div v-else-if="repayLoans.length === 0" class="text-xs text-slate-400 py-2">ไม่มีรายการยืมที่ยังค้าง</div>
-              <div v-else role="radiogroup" aria-label="รายการยืมที่คืน" class="flex flex-col gap-2 max-h-56 overflow-y-auto hide-scrollbar">
-                <button v-for="loan in repayLoans" :key="loan.id" type="button" role="radio" :aria-checked="String(loan.id) === formRepaysId" @click="chooseRepayLoan(loan)"
+              <div v-else role="group" aria-label="รายการยืมที่คืน" class="flex flex-col gap-2 max-h-56 overflow-y-auto hide-scrollbar">
+                <button v-for="loan in repayLoans" :key="loan.id" type="button" role="checkbox" :aria-checked="formRepaysIds.includes(String(loan.id))" @click="toggleRepayLoan(loan)"
                   class="flex items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left border transition-colors"
-                  :class="String(loan.id) === formRepaysId ? 'border-violet-400 bg-violet-500/15' : 'border-slate-700 bg-brand-bg'">
-                  <div class="min-w-0">
+                  :class="formRepaysIds.includes(String(loan.id)) ? 'border-violet-400 bg-violet-500/15' : 'border-slate-700 bg-brand-bg'">
+                  <span class="w-5 h-5 shrink-0 rounded-md border flex items-center justify-center text-xs font-black"
+                    :class="formRepaysIds.includes(String(loan.id)) ? 'bg-violet-500 border-violet-400 text-white' : 'border-slate-500 text-transparent'">✓</span>
+                  <div class="min-w-0 flex-1">
                     <div class="text-xs text-slate-200">🗓️ {{ formatThaiDate(loan.date) }}<span v-if="formatTime(loan.time)"> · {{ formatTime(loan.time) }}</span></div>
                     <div class="text-[11px] text-slate-400 truncate">ยืม {{ loan.amount.toLocaleString('th-TH') }} ฿<span v-if="loan.note && loan.note !== '-'"> · {{ loan.note }}</span></div>
                   </div>
-                  <div class="text-sm font-black text-yellow-300 shrink-0">ค้าง {{ loan.remaining.toLocaleString('th-TH') }} ฿</div>
+                  <div class="text-right shrink-0">
+                    <div class="text-sm font-black text-yellow-300">ค้าง {{ loan.remaining.toLocaleString('th-TH') }} ฿</div>
+                    <div v-if="repayPartFor(loan)" class="text-[11px] font-bold text-green-400">หัก {{ repayPartFor(loan).toLocaleString('th-TH') }} ฿</div>
+                  </div>
                 </button>
+              </div>
+              <div v-if="selectedRepayLoans.length" class="mt-2 text-xs text-slate-300">
+                เลือก {{ selectedRepayLoans.length }} รายการ · ค้างรวม {{ selectedRepayTotal.toLocaleString('th-TH') }} ฿
               </div>
             </div>
             <div v-if="formType !== 'debtor'" class="bg-brand-card p-4 rounded-2xl flex items-center gap-3 border border-slate-700/50">
@@ -666,7 +675,7 @@ import liff from '@line/liff'
 import FinanceTools from './components/FinanceTools.vue'
 import { createUpdateMonitor } from './update-monitor.js'
 import { useCalendarSelection } from './calendar-selection.js'
-import { debtorHistory } from './debtor-history.js'
+import { debtorHistory, allocateRepayment } from './debtor-history.js'
 
 // Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
@@ -791,24 +800,32 @@ const formDebtorAction = ref('lend')
 const formDebtorName = ref('')
 
 // ตอนจด "เพื่อนคืนเงิน" ให้เลือกว่าเงินที่คืนเป็นของรายการยืมไหน
-const formRepaysId = ref('')
+const formRepaysIds = ref([])
 const repayLoans = computed(() =>
   formType.value === 'debtor' && formDebtorAction.value === 'repay' && formDebtorName.value && debtorRecords.value
     ? debtorHistory(debtorRecords.value, formDebtorName.value).outstanding
     : []
 )
-const selectedRepayLoan = computed(() => repayLoans.value.find(l => String(l.id) === String(formRepaysId.value)) || null)
-const chooseRepayLoan = (loan) => {
-  formRepaysId.value = String(loan.id)
-  const typed = Number(formAmount.value)
-  if (!typed || typed > loan.remaining) formAmount.value = loan.remaining
+// เลือกได้หลายรายการ: ยอดคืนจะหักรายการที่เลือกซึ่งเก่าที่สุดก่อน
+const selectedRepayLoans = computed(() => repayLoans.value.filter(l => formRepaysIds.value.includes(String(l.id))))
+const selectedRepayTotal = computed(() =>
+  Math.round(selectedRepayLoans.value.reduce((sum, l) => sum + l.remaining, 0) * 100) / 100
+)
+const repayAllocation = computed(() => allocateRepayment(repayLoans.value, formRepaysIds.value, formAmount.value))
+const repayPartFor = (loan) => repayAllocation.value.find(p => String(p.id) === String(loan.id))?.amount || 0
+const toggleRepayLoan = (loan) => {
+  const id = String(loan.id)
+  formRepaysIds.value = formRepaysIds.value.includes(id)
+    ? formRepaysIds.value.filter(x => x !== id)
+    : [...formRepaysIds.value, id]
+  formAmount.value = selectedRepayTotal.value || ''
 }
 watch([formType, formDebtorAction, formDebtorName], () => {
-  formRepaysId.value = ''
+  formRepaysIds.value = []
   if (formType.value === 'debtor' && formDebtorAction.value === 'repay' && formDebtorName.value) loadDebtorRecords()
 })
 watch(repayLoans, loans => {
-  if (loans.length === 1 && !formRepaysId.value) chooseRepayLoan(loans[0])
+  if (loans.length === 1 && !formRepaysIds.value.length) toggleRepayLoan(loans[0])
 })
 watch(debtorRecords, value => {
   if (value === null && (debtorDetailName.value || (formType.value === 'debtor' && formDebtorAction.value === 'repay' && formDebtorName.value))) {
@@ -1288,11 +1305,11 @@ const saveRecord = async () => {
     }
     if(!formAccount.value) return alert("⚠️ กรุณาเลือกบัญชีด้วยครับ!")
     if (formDebtorAction.value === 'repay' && repayLoans.value.length) {
-      if (!selectedRepayLoan.value) return alert("⚠️ กรุณาเลือกรายการยืมที่เพื่อนคืนเงินครับ!")
-      if (Number(formAmount.value) > selectedRepayLoan.value.remaining) {
-        return alert(`⚠️ ยอดคืนเกินยอดค้างของรายการนี้ (${selectedRepayLoan.value.remaining.toLocaleString('th-TH')} ฿)`)
+      if (!selectedRepayLoans.value.length) return alert("⚠️ กรุณาเลือกรายการยืมที่เพื่อนคืนเงินครับ!")
+      if (Number(formAmount.value) > selectedRepayTotal.value) {
+        return alert(`⚠️ ยอดคืนเกินยอดค้างของรายการที่เลือก (${selectedRepayTotal.value.toLocaleString('th-TH')} ฿)`)
       }
-      payload.repaysId = selectedRepayLoan.value.id
+      payload.repays = repayAllocation.value
     }
     payload.type = formDebtorAction.value === 'lend' ? 'ให้ยืมเงิน' : 'ได้คืนจากลูกหนี้'
     payload.category = formDebtorName.value.trim()

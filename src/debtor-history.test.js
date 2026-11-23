@@ -1,6 +1,28 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { debtorHistory } from './debtor-history.js'
+import { debtorHistory, allocateRepayment } from './debtor-history.js'
+
+const outstanding = [
+  { id: 23, date: '20/11/2026', time: '11:18:00', remaining: 200 },
+  { id: 22, date: '12/11/2026', time: '14:32:00', remaining: 250 },
+  { id: 21, date: '11/11/2026', time: '11:34:00', remaining: 12 },
+]
+
+test('splits a repayment across chosen loans, oldest chosen loan first', () => {
+  assert.deepEqual(allocateRepayment(outstanding, ['23', '21'], 212), [{ id: 21, amount: 12 }, { id: 23, amount: 200 }])
+  assert.deepEqual(allocateRepayment(outstanding, ['23', '22', '21'], 100), [{ id: 21, amount: 12 }, { id: 22, amount: 88 }])
+})
+
+test('allocation ignores unknown ids and never exceeds what is owed', () => {
+  assert.deepEqual(allocateRepayment(outstanding, ['22', '999'], 1000), [{ id: 22, amount: 250 }])
+  assert.deepEqual(allocateRepayment(outstanding, [], 50), [])
+  assert.deepEqual(allocateRepayment(outstanding, ['22'], 0), [])
+})
+
+test('allocation keeps cents exact', () => {
+  const loans = [{ id: 1, date: '01/11/2026', time: '', remaining: 0.1 }, { id: 2, date: '02/11/2026', time: '', remaining: 0.2 }]
+  assert.deepEqual(allocateRepayment(loans, ['1', '2'], 0.3), [{ id: 1, amount: 0.1 }, { id: 2, amount: 0.2 }])
+})
 
 const lend = (id, date, time, amount, category = 'นัท') => ({ id, date, time, amount, category, type: 'ให้ยืมเงิน', account: 'กสิกร', note: '-' })
 const repay = (id, date, time, amount, category = 'นัท') => ({ id, date, time, amount, category, type: 'ได้คืนจากลูกหนี้', account: 'เงินสด', note: '-' })

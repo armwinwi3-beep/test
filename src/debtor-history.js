@@ -59,3 +59,21 @@ export function debtorHistory(records, name) {
     remaining: round(loans.reduce((sum, l) => sum + l.remaining, 0)),
   }
 }
+
+// Split one repayment over the loans the user picked, paying the oldest picked loan first.
+// Returns [{ id, amount }] for loans that get money; never more than each loan still owes.
+export function allocateRepayment(outstanding, ids, amount) {
+  const chosen = new Set((ids || []).map(String))
+  let left = Math.round((Number(amount) || 0) * 100)
+  const result = []
+  const oldestFirst = [...(outstanding || [])]
+    .filter(loan => chosen.has(String(loan.id)))
+    .sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+  for (const loan of oldestFirst) {
+    if (left <= 0) break
+    const cents = Math.min(left, Math.round(loan.remaining * 100))
+    if (cents > 0) result.push({ id: loan.id, amount: cents / 100 })
+    left -= cents
+  }
+  return result
+}

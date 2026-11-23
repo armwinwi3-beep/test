@@ -1,0 +1,53 @@
+// Lend/repay history for one debtor. Repayments pay off the oldest loans first,
+// so each loan shows how much of it is still owed.
+
+const LEND = 'ให้ยืมเงิน'
+const REPAY = 'ได้คืนจากลูกหนี้'
+
+const toNumber = value => Math.abs(parseFloat(String(value ?? 0).replace(/,/g, '')) || 0)
+
+// "DD/MM/YYYY" + "HH:MM:SS" -> sortable key
+const sortKey = row => {
+  const [d = '', m = '', y = ''] = String(row.date || '').split('/')
+  return `${y.padStart(4, '0')}${m.padStart(2, '0')}${d.padStart(2, '0')} ${row.time || ''} ${String(row.id).padStart(12, '0')}`
+}
+
+const round = value => Math.round(value * 100) / 100
+
+export function debtorHistory(records, name) {
+  const target = String(name || '').trim()
+  const rows = (records || [])
+    .filter(r => (r.type === LEND || r.type === REPAY) && String(r.category || '').trim() === target)
+    .map(r => ({ ...r, amount: toNumber(r.amount) }))
+    .sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+
+  const loans = []
+  let totalLent = 0
+  let totalRepaid = 0
+  for (const row of rows) {
+    if (row.type === LEND) {
+      totalLent += row.amount
+      loans.push({ ...row, remaining: row.amount })
+    } else {
+      totalRepaid += row.amount
+      let left = row.amount
+      for (const loan of loans) {
+        if (left <= 0) break
+        const paid = Math.min(left, loan.remaining)
+        loan.remaining = round(loan.remaining - paid)
+        left -= paid
+      }
+      // Ignore overpayment, matching the backend which never lets a debt go negative.
+    }
+  }
+
+  const newestFirst = list => [...list].reverse()
+  return {
+    entries: newestFirst(rows.map(r => r.type === LEND ? loans.find(l => l.id === r.id) : r)),
+    loans: newestFirst(loans),
+    outstanding: newestFirst(loans.filter(l => l.remaining > 0)),
+    totalLent: round(totalLent),
+    totalRepaid: round(totalRepaid),
+    remaining: round(loans.reduce((sum, l) => sum + l.remaining, 0)),
+  }
+}

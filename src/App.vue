@@ -230,13 +230,14 @@
             <span class="text-4xl">😇</span>
             <span>ไม่มีใครยืมเงินคุณเลย ยอดเยี่ยม!</span>
           </div>
-          <div v-else v-for="d in debtorsList" :key="d.name" class="bg-brand-card rounded-2xl p-4 mb-3 border-l-4 border-violet-500 shadow-sm hover:translate-x-1 transition-transform">
+          <button v-else v-for="d in debtorsList" :key="d.name" type="button" @click="openDebtorDetail(d.name)" :aria-label="`ดูรายการของ ${d.name}`" class="block w-full text-left bg-brand-card rounded-2xl p-4 mb-3 border-l-4 border-violet-500 shadow-sm hover:translate-x-1 active:scale-[0.98] transition-transform">
             <div class="flex items-center gap-4">
               <div class="bg-violet-500/20 text-violet-400 p-2.5 rounded-xl text-xl">👤</div>
-              <div class="min-w-0">
+              <div class="min-w-0 flex-1">
                 <div class="font-bold text-base text-white truncate">{{ d.name }}</div>
                 <div class="text-xs text-slate-400 mt-0.5">สถานะการคืนเงิน</div>
               </div>
+              <span class="text-xs font-bold text-violet-300 shrink-0">ดูรายการ ›</span>
             </div>
 
             <div class="grid grid-cols-2 gap-2 mt-3">
@@ -257,7 +258,7 @@
             <div v-if="d.amount <= 0" class="mt-2 text-center text-[11px] font-bold text-green-400 bg-green-500/10 rounded-lg py-1.5">
               ✅ คืนเงินครบแล้ว
             </div>
-          </div>
+          </button>
         </section>
 
         <!-- 📋 แท็บบิลรายเดือน -->
@@ -582,6 +583,60 @@
       </div>
     </form>
   </div>
+  <!-- 🤝 รายละเอียดคนยืมรายคน -->
+  <Transition name="slide-up">
+    <div v-if="debtorDetailName" class="fixed inset-0 z-[70] bg-black/60 flex items-end justify-center" @click.self="debtorDetailName = ''">
+      <div role="dialog" :aria-label="`รายการของ ${debtorDetailName}`" class="w-full max-w-[480px] max-h-[85vh] flex flex-col bg-brand-bg rounded-t-3xl border-t border-slate-700 shadow-2xl">
+        <div class="flex items-center gap-3 px-5 pt-5 pb-3">
+          <div class="bg-violet-500/20 text-violet-400 p-2.5 rounded-xl text-xl">👤</div>
+          <div class="min-w-0 flex-1 font-bold text-lg text-white truncate">{{ debtorDetailName }}</div>
+          <button @click="debtorDetailName = ''" class="text-slate-400 hover:text-white font-bold p-2" aria-label="ปิด">✕</button>
+        </div>
+
+        <div v-if="!debtorDetail" class="py-16 text-center text-slate-400">กำลังโหลดรายการ...</div>
+        <template v-else>
+          <div class="grid grid-cols-3 gap-2 px-5 pb-3">
+            <div class="rounded-xl bg-violet-500/10 border border-violet-500/20 px-3 py-2">
+              <div class="text-[10px] font-bold text-violet-300">ให้ยืมทั้งหมด</div>
+              <div class="text-sm font-black text-white mt-0.5">{{ debtorDetail.totalLent.toLocaleString('th-TH') }} ฿</div>
+            </div>
+            <div class="rounded-xl bg-green-500/10 border border-green-500/20 px-3 py-2">
+              <div class="text-[10px] font-bold text-green-400">คืนแล้ว</div>
+              <div class="text-sm font-black text-green-300 mt-0.5">{{ debtorDetail.totalRepaid.toLocaleString('th-TH') }} ฿</div>
+            </div>
+            <div class="rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2">
+              <div class="text-[10px] font-bold text-yellow-400">ค้างอยู่</div>
+              <div class="text-sm font-black text-yellow-300 mt-0.5">{{ debtorDetail.remaining.toLocaleString('th-TH') }} ฿</div>
+            </div>
+          </div>
+          <div class="px-5 pb-2 text-[11px] text-slate-400">ยอดที่คืนจะหักจากรายการยืมที่เก่าที่สุดก่อน</div>
+
+          <div class="flex-1 overflow-y-auto px-5 pb-6 hide-scrollbar">
+            <div v-if="debtorDetail.entries.length === 0" class="py-10 text-center text-slate-400">ยังไม่มีรายการยืมหรือคืน</div>
+            <div v-for="e in debtorDetail.entries" :key="e.id" class="rounded-2xl bg-brand-card border border-slate-700/50 p-4 mb-2">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-sm font-bold" :class="e.type === 'ให้ยืมเงิน' ? 'text-violet-300' : 'text-green-400'">
+                    {{ e.type === 'ให้ยืมเงิน' ? '💸 ให้ยืม' : '💰 ได้คืน' }}
+                  </div>
+                  <div class="text-xs text-slate-300 mt-1">🗓️ {{ formatThaiDate(e.date) }} <span v-if="formatTime(e.time)">· {{ formatTime(e.time) }}</span></div>
+                  <div class="text-xs text-slate-400 mt-0.5">บัญชี {{ e.account || '-' }}<span v-if="e.note && e.note !== '-'"> · {{ e.note }}</span></div>
+                </div>
+                <div class="text-right shrink-0">
+                  <div class="font-black" :class="e.type === 'ให้ยืมเงิน' ? 'text-white' : 'text-green-300'">{{ e.type === 'ให้ยืมเงิน' ? '' : '+' }}{{ e.amount.toLocaleString('th-TH') }} ฿</div>
+                  <div v-if="e.type === 'ให้ยืมเงิน'" class="mt-1 text-[11px] font-bold rounded-md px-2 py-0.5 inline-block" :class="e.remaining > 0 ? 'bg-yellow-500/15 text-yellow-300' : 'bg-green-500/15 text-green-400'">
+                    {{ e.remaining > 0 ? `ค้าง ${e.remaining.toLocaleString('th-TH')} ฿` : 'คืนครบ' }}
+                  </div>
+                </div>
+              </div>
+              <button v-if="receiptIds.has(String(e.id))" @click="openReceipt(e)" class="mt-2 text-xs font-bold text-sky-300 underline">📎 ดูรูปที่แนบ</button>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+  </Transition>
+
   <div v-if="receiptUrl" class="fixed inset-0 z-[80] bg-black/90 flex flex-col p-4" role="dialog" aria-label="รูปหลักฐาน">
     <button @click="receiptUrl = ''" class="self-end text-white font-bold text-lg p-2">✕ ปิด</button>
     <img :src="receiptUrl" alt="รูปหลักฐานรายจ่าย" class="flex-1 min-h-0 w-full object-contain">
@@ -594,6 +649,7 @@ import liff from '@line/liff'
 import FinanceTools from './components/FinanceTools.vue'
 import { createUpdateMonitor } from './update-monitor.js'
 import { useCalendarSelection } from './calendar-selection.js'
+import { debtorHistory } from './debtor-history.js'
 
 // Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
@@ -675,6 +731,38 @@ const selectedReceipt = ref(null)
 const receiptInput = ref(null)
 const receiptIds = ref(new Set())
 const receiptUrl = ref('')
+// รายละเอียดคนยืมรายคน: ดึงรายการทุกเดือนจาก /api/finance/records แล้วเก็บไว้จนกว่าข้อมูลจะเปลี่ยน
+const debtorDetailName = ref('')
+const debtorRecords = ref(null)
+const debtorDetailLoading = ref(false)
+const debtorDetail = computed(() =>
+  debtorDetailName.value && debtorRecords.value ? debtorHistory(debtorRecords.value, debtorDetailName.value) : null
+)
+const formatThaiDate = (date) => {
+  const [d, m, y] = String(date || '').split('/').map(Number)
+  if (!d || !m || !y) return date || '-'
+  return `${d} ${thMonths[m - 1]} ${String(y + 543).slice(-2)}`
+}
+const formatTime = (time) => (time && time !== '-' ? String(time).slice(0, 5) + ' น.' : '')
+const openDebtorDetail = async (name) => {
+  debtorDetailName.value = name
+  if (debtorRecords.value) return
+  debtorDetailLoading.value = true
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/finance/records?user_id=${encodeURIComponent(userId.value)}`, { headers: financeHeaders() })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.message || 'โหลดรายการไม่สำเร็จ')
+    debtorRecords.value = data.records || []
+  } catch (e) {
+    showToast('❌ ' + e.message, true)
+    debtorDetailName.value = ''
+  } finally {
+    debtorDetailLoading.value = false
+  }
+}
+watch(debtorRecords, value => {
+  if (value === null && debtorDetailName.value && !debtorDetailLoading.value) openDebtorDetail(debtorDetailName.value)
+})
 const formBillStatus = ref('ยังไม่จ่าย')
 const editingBillId = ref(null)
 const formSourceAcc = ref('')
@@ -1018,6 +1106,7 @@ const fetchMonthData = async () => {
     debtorsData.value = data.debtors || {}
     debtorPeople.value = data.debtor_people || []
     financeRevision.value++
+    debtorRecords.value = null
     // ไม่ต้องรอรายการรูปใบเสร็จ ให้แสดงยอดและรายการได้ทันที
     void loadReceiptIds()
 

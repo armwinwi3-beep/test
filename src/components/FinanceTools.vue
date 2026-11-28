@@ -116,7 +116,7 @@
         <label class="block text-sm">รูปหลักฐาน (เพิ่มหรือเปลี่ยน)<input type="file" accept="image/jpeg,image/png,image/webp" @change="selectEditReceipt" class="field"></label>
         <p v-if="editReceiptFile" class="text-xs text-sky-300 break-words">เลือกรูป: {{ editReceiptFile.name }}</p>
         <p v-else-if="detailReceiptUrl" class="text-xs text-slate-400">มีรูปหลักฐานอยู่แล้ว เลือกรูปใหม่เพื่อเปลี่ยน</p>
-        <p class="text-xs text-slate-400">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 5 MB</p>
+        <p class="text-xs text-slate-400">รองรับ JPG, PNG, WebP (รูปใหญ่จะถูกย่อให้อัตโนมัติ)</p>
         <div class="flex gap-3"><button :disabled="saving" type="button" @click="editing = null" class="flex-1 p-3 rounded-xl bg-slate-800">ยกเลิก</button><button :disabled="saving" class="action flex-1">{{ saving ? 'กำลังบันทึก…' : 'บันทึกการแก้ไข' }}</button></div>
       </form>
     </div>
@@ -125,6 +125,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { shrinkImage, MAX_UPLOAD_BYTES } from '../shrink-image.js'
 import { accounts, recordTypes, money, toISO, bangkokToday, filterRecords } from '../finance-tools.js'
 const props = defineProps({ userId: String, month: String, apiBase: String, authHeaders: Function, revision: Number })
 const emit = defineEmits(['changed', 'busy', 'go-bills'])
@@ -207,13 +208,14 @@ async function view(row) {
   finally { if (viewing.value?.id === row.id) detailReceiptLoading.value = false }
 }
 function edit(row) { editError.value = ''; editReceiptFile.value = null; editing.value = {...row, date:toISO(row.date)} }
-function selectEditReceipt(event) {
-  const file = event.target.files?.[0]
-  if (!file) { editReceiptFile.value = null; return }
-  if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+async function selectEditReceipt(event) {
+  const picked = event.target.files?.[0]
+  if (!picked) { editReceiptFile.value = null; return }
+  const file = ['image/jpeg','image/png','image/webp'].includes(picked.type) ? await shrinkImage(picked).catch(() => picked) : null
+  if (!file || file.size > MAX_UPLOAD_BYTES) {
     event.target.value = ''
     editReceiptFile.value = null
-    editError.value = 'เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB'
+    editError.value = 'เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 4 MB'
     return
   }
   editError.value = ''

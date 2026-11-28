@@ -530,7 +530,7 @@
               <span class="truncate">{{ selectedReceipt.name }}</span>
               <button type="button" @click="clearReceipt" class="text-red-300 font-bold">ลบรูป</button>
             </div>
-            <p class="mt-2 text-xs text-slate-500">รองรับ JPG, PNG, WebP ขนาดไม่เกิน 5 MB</p>
+            <p class="mt-2 text-xs text-slate-500">รองรับ JPG, PNG, WebP (รูปใหญ่จะถูกย่อให้อัตโนมัติ)</p>
           </div>
 
           <button :disabled="pendingWrites > 0" @click="saveRecord" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-lg mt-auto active:scale-95 transition-all shadow-lg flex justify-center items-center gap-2">
@@ -676,10 +676,11 @@ import FinanceTools from './components/FinanceTools.vue'
 import { createUpdateMonitor } from './update-monitor.js'
 import { useCalendarSelection } from './calendar-selection.js'
 import { debtorHistory, allocateRepayment } from './debtor-history.js'
+import { shrinkImage, MAX_UPLOAD_BYTES } from './shrink-image.js'
 
 // Configuration
 const LIFF_ID = '2010880429-sx53ElMd'
-const API_BASE_URL = 'https://my-line-bot-l9l5.onrender.com'
+const API_BASE_URL = 'https://my-line-bot-self.vercel.app'
 
 // State
 const isAdminMode = ref(false)
@@ -1204,12 +1205,14 @@ const clearReceipt = () => {
   if (receiptInput.value) receiptInput.value.value = ''
 }
 
-const onReceiptSelected = (event) => {
-  const file = event.target.files?.[0]
-  if (!file) return clearReceipt()
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+const onReceiptSelected = async (event) => {
+  const picked = event.target.files?.[0]
+  if (!picked) return clearReceipt()
+  // รูปจากมือถือที่ใหญ่เกินจะถูกย่อก่อนส่ง
+  const file = ['image/jpeg', 'image/png', 'image/webp'].includes(picked.type) ? await shrinkImage(picked).catch(() => picked) : null
+  if (!file || file.size > MAX_UPLOAD_BYTES) {
     clearReceipt()
-    showToast('❌ เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 5 MB', true)
+    showToast('❌ เลือกรูป JPG, PNG หรือ WebP ขนาดไม่เกิน 4 MB', true)
     return
   }
   selectedReceipt.value = file
